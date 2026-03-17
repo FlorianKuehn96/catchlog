@@ -1,13 +1,12 @@
 const CACHE_NAME = 'catchlog-v1';
 const STATIC_ASSETS = [
   '/',
-  '/login',
   '/dashboard',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/login',
+  '/manifest.json',
 ];
 
-// Install event - cache static assets
+// Install: Cache statische Assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +16,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate: Alte Caches löschen
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -31,38 +30,54 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - network first, then cache
+// Fetch: Cache-First Strategie
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   
-  // Skip non-GET requests
-  if (request.method !== 'GET') return;
+  // API Requests nicht cachen
+  if (request.url.includes('/api/')) {
+    return;
+  }
   
-  // Skip API requests
-  if (request.url.includes('/api/')) return;
+  // Auth nicht cachen
+  if (request.url.includes('/api/auth')) {
+    return;
+  }
   
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Cache successful responses
-        if (response.status === 200) {
-          const responseClone = response.clone();
+    caches.match(request).then((cached) => {
+      if (cached) {
+        // Im Hintergrund aktualisieren (Stale-While-Revalidate)
+        fetch(request).then((response) => {
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+            cache.put(request, response);
           });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Return from cache if network fails
-        return caches.match(request).then((cached) => {
-          if (cached) return cached;
-          // Return offline fallback for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          throw new Error('Network error and no cache');
+        }).catch(() => {
+          // Offline - Cached Version behalten
         });
-      })
+        return cached;
+      }
+      
+      // Nicht im Cache - vom Netzwerk holen
+      return fetch(request).then((response) => {
+        // Nur erfolgreiche Responses cachen
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+        
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
+        });
+        
+        return response;
+      });
+    }).catch(() => {
+      // Offline und nicht im Cache
+      if (request.mode === 'navigate') {
+        return caches.match('/dashboard');
+      }
+      return new Response('Offline', { status: 503 });
+    })
   );
 });
