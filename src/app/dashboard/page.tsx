@@ -28,7 +28,13 @@ export default function Dashboard() {
       ]);
 
       if (!spotsRes.ok || !catchesRes.ok) {
-        throw new Error('Fehler beim Laden');
+        if (spotsRes.status === 401 || catchesRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        const spotsError = await spotsRes.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+        const catchesError = await catchesRes.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+        throw new Error(spotsError.error || catchesError.error || `Fehler: ${spotsRes.status}/${catchesRes.status}`);
       }
 
       const spotsData = await spotsRes.json();
