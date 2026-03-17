@@ -1,7 +1,8 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -46,7 +47,16 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Profil</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <span className="text-xl">←</span>
+          <span className="hidden sm:inline">Zurück</span>
+        </Link>
+        <h1 className="text-2xl font-bold">Profil</h1>
+      </div>
       
       {message && (
         <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg">
