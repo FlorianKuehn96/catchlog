@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Spot } from '@/types';
+import { Spot, Catch } from '@/types';
 
 interface CatchFormProps {
   spots: Spot[];
+  initialCatch?: Catch; // Für Bearbeiten
   onSuccess: () => void;
+  onCancel?: () => void;
 }
 
 // Faktoren für Gewichtsberechnung (Länge³ / Faktor = Gewicht in kg)
 // Korrektur: Faktoren angepasst für realistische Gewichte
-// Beispiel: 60cm Zander = ~2.2kg, 60cm Hecht = ~2.5kg
 const WEIGHT_FACTORS: Record<string, number> = {
   // Raubfische (schlanke, muskulöse Fische)
   'Hecht': 85,
@@ -91,32 +92,43 @@ const GERMAN_FISH_SPECIES = [
 // Sortiere alphabetisch
 GERMAN_FISH_SPECIES.sort();
 
-export function CatchForm({ spots, onSuccess }: CatchFormProps) {
+export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFormProps) {
+  const isEditing = !!initialCatch;
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedSpot, setSelectedSpot] = useState('');
-  const [species, setSpecies] = useState('');
-  const [length, setLength] = useState('');
-  const [weight, setWeight] = useState('');
-  const [bait, setBait] = useState('');
-  const [technique, setTechnique] = useState('');
-  const [notes, setNotes] = useState('');
+  const [selectedSpot, setSelectedSpot] = useState(initialCatch?.spotId || '');
+  const [species, setSpecies] = useState(initialCatch?.species || '');
+  const [length, setLength] = useState(initialCatch?.length?.toString() || '');
+  const [weight, setWeight] = useState(initialCatch?.weight?.toString() || '');
+  const [bait, setBait] = useState(initialCatch?.bait || '');
+  const [technique, setTechnique] = useState(initialCatch?.technique || '');
+  const [notes, setNotes] = useState(initialCatch?.notes || '');
+  
+  // Zeitstempel - für neue Fänge: jetzt, für Bearbeiten: bestehender Wert
+  const [date, setDate] = useState(() => {
+    if (initialCatch?.date) return initialCatch.date;
+    return new Date().toISOString().split('T')[0];
+  });
+  const [time, setTime] = useState(() => {
+    if (initialCatch?.time) return initialCatch.time;
+    return new Date().toTimeString().slice(0, 5);
+  });
 
   // Automatische Gewichtsberechnung
   useEffect(() => {
-    if (length && species) {
+    if (length && species && !isEditing) { // Nur bei neuen Fängen auto-berechnen
       const len = parseFloat(length);
       if (len > 0) {
-        const factor = WEIGHT_FACTORS[species] || 3000; // Default-Faktor
+        const factor = WEIGHT_FACTORS[species] || 3000;
         const calculatedWeight = Math.pow(len, 3) / factor / 1000;
-        // Nur aktualisieren wenn Gewicht leer oder sehr nah am berechneten
         const currentWeight = parseFloat(weight);
         if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.5) {
           setWeight(calculatedWeight.toFixed(2));
         }
       }
     }
-  }, [length, species]);
+  }, [length, species, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,19 +141,24 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
     setError('');
 
     try {
-      // NOTE: Photo upload disabled for MVP - Cloudinary not configured
+      const timestamp = `${date}T${time}:00`;
+      
+      const payload = {
+        ...(isEditing && { id: initialCatch!.id }),
+        spotId: selectedSpot,
+        species,
+        length: length ? parseFloat(length) : undefined,
+        weight: weight ? parseFloat(weight) : undefined,
+        bait,
+        technique,
+        notes,
+        timestamp,
+      };
+
       const res = await fetch('/api/catches', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spotId: selectedSpot,
-          species,
-          length: length ? parseFloat(length) : undefined,
-          weight: weight ? parseFloat(weight) : undefined,
-          bait,
-          technique,
-          notes,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -149,15 +166,6 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
         throw new Error(data.error || 'Fehler beim Speichern');
       }
 
-      // Reset form
-      setSelectedSpot('');
-      setSpecies('');
-      setLength('');
-      setWeight('');
-      setBait('');
-      setTechnique('');
-      setNotes('');
-      
       onSuccess();
     } catch (err: any) {
       setError(err.message);
@@ -190,11 +198,40 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold text-gray-900">Neuen Fang eintragen</h3>
+      <h3 className="text-lg font-semibold text-gray-900">
+        {isEditing ? 'Fang bearbeiten' : 'Neuen Fang eintragen'}
+      </h3>
       
       {error && (
         <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">{error}</div>
       )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Datum *
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Uhrzeit *
+          </label>
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -250,9 +287,9 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Gewicht (kg)
-            {calculatedWeight && (
+            {calculatedWeight && !isEditing && (
               <span className="ml-2 text-xs text-blue-600 font-normal">
-                (ca. {calculatedWeight} kg berechnet)
+                (ca. {calculatedWeight} kg)
               </span>
             )}
           </label>
@@ -322,13 +359,26 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? 'Speichern...' : 'Fang speichern'}
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Speichern...' : isEditing ? 'Änderungen speichern' : 'Fang speichern'}
+        </button>
+        
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50"
+          >
+            Abbrechen
+          </button>
+        )}
+      </div>
     </form>
   );
 }

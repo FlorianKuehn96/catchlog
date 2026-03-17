@@ -67,3 +67,58 @@ export function getWeatherRecommendation(weather: Weather): string {
   
   return recommendations.join(' | ') || 'Standardbedingungen';
 }
+
+// Berechne Sonnenposition (vereinfachte Näherung für Deutschland)
+export function getSunPosition(lat: number, lng: number, date: Date): {
+  hoursFromSunrise: number;
+  hoursFromSunset: number;
+  phase: 'night' | 'dawn' | 'day' | 'dusk' | 'night';
+} {
+  const hour = date.getHours() + date.getMinutes() / 60;
+  const month = date.getMonth() + 1;
+  
+  // Vereinfachte Sonnenzeiten für Deutschland (ca. 50°N)
+  // Sommer: Sonnenaufgang ~5:00, Sonnenuntergang ~21:00
+  // Winter: Sonnenaufgang ~8:00, Sonnenuntergang ~16:30
+  
+  let sunriseHour: number;
+  let sunsetHour: number;
+  
+  if (month >= 4 && month <= 8) {
+    // Frühling/Sommer
+    sunriseHour = 5 + (month - 4) * 0.5; // 5:00 - 7:00
+    sunsetHour = 21 - (month - 4) * 0.5; // 21:00 - 19:00
+  } else if (month >= 9 && month <= 10) {
+    // Herbst
+    sunriseHour = 7 + (month - 8) * 0.3;
+    sunsetHour = 19 - (month - 8) * 0.8;
+  } else {
+    // Winter
+    sunriseHour = 8;
+    sunsetHour = 16.5;
+  }
+  
+  // Dämmerung: 30 Minuten vor/nach
+  const dawnStart = sunriseHour - 0.5;
+  const duskEnd = sunsetHour + 0.5;
+  
+  let phase: 'night' | 'dawn' | 'day' | 'dusk' | 'night';
+  
+  if (hour < dawnStart) {
+    phase = 'night';
+  } else if (hour < sunriseHour) {
+    phase = 'dawn';
+  } else if (hour < sunsetHour) {
+    phase = 'day';
+  } else if (hour < duskEnd) {
+    phase = 'dusk';
+  } else {
+    phase = 'night';
+  }
+  
+  return {
+    hoursFromSunrise: hour - sunriseHour,
+    hoursFromSunset: hour - sunsetHour,
+    phase,
+  };
+}

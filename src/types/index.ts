@@ -30,6 +30,12 @@ export interface Weather {
   waterTemp?: number;
 }
 
+export interface SunPosition {
+  hoursFromSunrise: number;  // z.B. -2.5 = 2.5h vor Sonnenaufgang
+  hoursFromSunset: number;   // z.B. 1.5 = 1.5h nach Sonnenuntergang
+  phase: 'night' | 'dawn' | 'day' | 'dusk' | 'night';
+}
+
 export interface Catch {
   id: string;
   userId: string;
@@ -42,7 +48,10 @@ export interface Catch {
   bait: string;
   technique?: string;
   weather: Weather;
-  timestamp: string;
+  timestamp: string;      // ISO Datetime
+  date: string;           // YYYY-MM-DD für Filter
+  time: string;           // HH:MM für Anzeige
+  sunPosition?: SunPosition;
   notes?: string;
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getRedis, keys } from '@/lib/redis';
-import { fetchWeather } from '@/lib/weather';
+import { fetchWeather, getSunPosition } from '@/lib/weather';
 import type { Catch, User } from '@/types';
 
 // GET /api/catches - List all catches for user
@@ -59,8 +59,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const { spotId, species, length, weight, bait, technique, notes } = body;
-    const timestamp = new Date().toISOString();
+    const { spotId, species, length, weight, bait, technique, notes, timestamp } = body;
+    
+    // Timestamp aus Body oder jetzt
+    const catchTimestamp = timestamp || new Date().toISOString();
+    const catchDate = new Date(catchTimestamp);
+    const date = catchDate.toISOString().split('T')[0];
+    const time = catchDate.toTimeString().slice(0, 5); // HH:MM
 
     if (!spotId || !species || !bait) {
       return NextResponse.json(
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Fetch weather data
     let weather;
     try {
-      weather = await fetchWeather(spot.lat, spot.lng, timestamp);
+      weather = await fetchWeather(spot.lat, spot.lng, catchTimestamp);
     } catch {
       // Fallback weather data
       weather = {
@@ -88,6 +93,19 @@ export async function POST(request: NextRequest) {
         windSpeed: 10,
         windDirection: 180,
         conditions: 'Unbekannt',
+      };
+    }
+
+    // Calculate sun position
+    let sunPosition;
+    try {
+      sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
+    } catch {
+      // Fallback
+      sunPosition = {
+        hoursFromSunrise: 0,
+        hoursFromSunset: 0,
+        phase: 'day' as const,
       };
     }
 
@@ -102,9 +120,11 @@ export async function POST(request: NextRequest) {
       bait,
       technique,
       weather,
-      timestamp,
+      timestamp: catchTimestamp,
+      date,
+      time,
+      sunPosition,
       notes,
-      // photoUrl disabled for MVP
     };
 
     // Save to Redis
@@ -117,6 +137,88 @@ export async function POST(request: NextRequest) {
     console.error('Error creating catch:', error);
     return NextResponse.json(
       { error: 'Failed to create catch' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/catches - Update existing catch
+export async function PUT(request: NextRequest) {
+  const session = await getServerSession();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const redis = getRedis();
+  const userData = await redis.get(keys.user(session.user.email));
+  if (!userData) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const user = userData as User;
+
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing catch ID' }, { status: 400 });
+    }
+
+    // Get existing catch
+    const catchData = await redis.get(keys.catch(id));
+    if (!catchData) {
+      return NextResponse.json({ error: 'Catch not found' }, { status: 404 });
+    }
+
+    const existingCatch = catchData as Catch;
+    
+    // Verify ownership
+    if (existingCatch.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Update timestamp fields if timestamp changed
+    let date = existingCatch.date;
+    let time = existingCatch.time;
+    let sunPosition = existingCatch.sunPosition;
+    
+    if (updates.timestamp && updates.timestamp !== existingCatch.timestamp) {
+      const catchDate = new Date(updates.timestamp);
+      date = catchDate.toISOString().split('T')[0];
+      time = catchDate.toTimeString().slice(0, 5);
+      
+      // Recalculate sun position
+      try {
+        const spotData = await redis.get(keys.spot(existingCatch.spotId));
+        if (spotData) {
+          const spot = spotData as any;
+          sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
+        }
+      } catch {
+        // Keep existing sun position
+      }
+    }
+
+    // Merge updates
+    const updatedCatch: Catch = {
+      ...existingCatch,
+      ...updates,
+      date,
+      time,
+      sunPosition,
+      id, // Ensure ID doesn't change
+      userId: existingCatch.userId, // Ensure ownership doesn't change
+    };
+
+    // Save to Redis
+    await redis.set(keys.catch(id), updatedCatch);
+
+    return NextResponse.json({ catch: updatedCatch });
+  } catch (error) {
+    console.error('Error updating catch:', error);
+    return NextResponse.json(
+      { error: 'Failed to update catch' },
       { status: 500 }
     );
   }
