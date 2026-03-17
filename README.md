@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CatchLog 🎣
 
-## Getting Started
+Dein digitaler Fangbericht. Speichere deine Angelerfolge mit Standort, Wetter und Foto. KI-Empfehlungen für den perfekten Fang.
 
-First, run the development server:
+## Features
+
+- 📸 **Fang-Logging** mit Foto, GPS, Wetter-Daten
+- 📍 **Spot-Verwaltung** mit Geo-Suche in der Nähe
+- 🤖 **KI-Köder-Empfehlung** basierend auf Wetter & Spot
+- 📊 **Statistiken** - Fangrate, beste Zeiten, erfolgreichste Spots
+- 💳 **Pro-Version** via Stripe (unbegrenzte Fänge)
+- 📱 **PWA** - Installierbar als Mobile App
+
+## Tech Stack
+
+- Next.js 16 + TypeScript + Tailwind CSS
+- NextAuth.js (Google OAuth)
+- Upstash Redis (Datenbank)
+- Stripe (Zahlungen)
+- Cloudinary (Bild-Upload)
+- Open-Meteo API (Wetter)
+
+## Quick Start
+
+### 1. Repository klonen
+
+```bash
+git clone https://github.com/yourusername/catchlog.git
+cd catchlog
+```
+
+### 2. Dependencies installieren
+
+```bash
+npm install
+```
+
+### 3. Environment Variables
+
+```bash
+cp .env.example .env.local
+# Edit .env.local with your values
+```
+
+### 4. Development Server starten
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Öffne [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Vercel (Empfohlen)
 
-## Learn More
+1. Push zu GitHub
+2. Importiere bei [vercel.com](https://vercel.com)
+3. Füge Environment Variables hinzu
+4. Deploy 🚀
 
-To learn more about Next.js, take a look at the following resources:
+### Stripe Webhook einrichten
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Stripe Dashboard → Webhooks
+2. Endpoint: `https://your-domain.com/api/stripe/webhook`
+3. Events:
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_failed`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+| Variable | Beschreibung | Woher? |
+|----------|--------------|--------|
+| `UPSTASH_REDIS_REST_URL` | Redis URL | [Upstash](https://upstash.com) |
+| `UPSTASH_REDIS_REST_TOKEN` | Redis Token | [Upstash](https://upstash.com) |
+| `NEXTAUTH_SECRET` | Auth Secret | `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` | Google OAuth | [Google Cloud](https://console.cloud.google.com) |
+| `STRIPE_SECRET_KEY` | Stripe Secret | [Stripe Dashboard](https://dashboard.stripe.com) |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary Name | [Cloudinary](https://cloudinary.com) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Endpoint | Methode | Beschreibung |
+|----------|---------|--------------|
+| `/api/catches` | GET/POST/DELETE | Fang-Logbuch |
+| `/api/spots` | GET/POST/DELETE | Gewässer-Verwaltung |
+| `/api/spots/nearby` | GET | Spots in der Nähe |
+| `/api/recommend` | GET | KI-Köder-Empfehlung |
+| `/api/stats` | GET | Statistiken |
+| `/api/stripe/checkout` | POST | Pro-Upgrade |
+| `/api/stripe/webhook` | POST | Stripe Events |
+
+## Lizenz
+
+MIT © Florian
