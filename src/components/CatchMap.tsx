@@ -70,7 +70,12 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
 
   // Marker aktualisieren wenn sich catches ändern
   useEffect(() => {
-    if (!L || !leafletMap.current) return;
+    console.log('CatchMap: catches updated:', catches.length, 'catches');
+    
+    if (!L || !leafletMap.current) {
+      console.log('CatchMap: Map not ready yet');
+      return;
+    }
 
     // Alte Marker entfernen
     markersRef.current.forEach((marker) => marker.remove());
@@ -78,10 +83,15 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
 
     // Catches mit Koordinaten filtern
     const catchesWithCoords = catches.filter(
-      (c) => typeof c.lat === 'number' && typeof c.lng === 'number'
+      (c) => typeof c.lat === 'number' && typeof c.lng === 'number' && c.lat !== 0 && c.lng !== 0
     );
+    
+    console.log('CatchMap: catches with coords:', catchesWithCoords.length);
 
-    if (catchesWithCoords.length === 0) return;
+    if (catchesWithCoords.length === 0) {
+      console.log('CatchMap: No catches with valid coordinates');
+      return;
+    }
 
     // Marker erstellen
     const bounds = L.latLngBounds();
@@ -111,8 +121,8 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
     if (catchesWithCoords.length > 1) {
       leafletMap.current.fitBounds(bounds, { padding: [50, 50] });
     } else if (catchesWithCoords.length === 1) {
-      const { spot } = catchesWithCoords[0];
-      leafletMap.current.setView([spot!.lat, spot!.lng], 13);
+      const { lat, lng } = catchesWithCoords[0];
+      leafletMap.current.setView([lat, lng], 13);
     }
   }, [catches]);
 
