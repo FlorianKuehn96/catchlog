@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getRedis, keys } from '@/lib/redis';
-import { uploadImage, getPublicIdFromUrl } from '@/lib/cloudinary';
 import { fetchWeather } from '@/lib/weather';
 import type { Catch, User } from '@/types';
 
@@ -42,6 +41,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/catches - Create new catch
+// NOTE: Photo upload disabled for MVP - Cloudinary not configured
 export async function POST(request: NextRequest) {
   const session = await getServerSession();
   if (!session?.user?.email) {
@@ -55,31 +55,19 @@ export async function POST(request: NextRequest) {
   }
 
   const user = userData as User;
-  
-  // Check subscription limit for free users
-  if (user.subscription === 'free') {
-    const catchCount = await redis.llen(keys.catchesByUser(user.id));
-    if (catchCount >= 50) {
-      return NextResponse.json(
-        { error: 'Limit reached. Upgrade to Pro for unlimited catches.' },
-        { status: 403 }
-      );
-    }
-  }
 
   try {
-    const formData = await request.formData();
+    const body = await request.json();
     
-    const spotId = formData.get('spotId') as string;
-    const species = formData.get('species') as string;
-    const length = parseFloat(formData.get('length') as string) || undefined;
-    const weight = parseFloat(formData.get('weight') as string) || undefined;
-    const bait = formData.get('bait') as string;
-    const technique = formData.get('technique') as string || undefined;
-    const notes = formData.get('notes') as string || undefined;
-    const photoFile = formData.get('photo') as File;
-    const useCurrentLocation = formData.get('useCurrentLocation') === 'true';
+    const { spotId, species, length, weight, bait, technique, notes } = body;
     const timestamp = new Date().toISOString();
+
+    if (!spotId || !species || !bait) {
+      return NextResponse.json(
+        { error: 'Missing required fields: spotId, species, bait' },
+        { status: 400 }
+      );
+    }
 
     // Get spot data
     const spotData = await redis.get(keys.spot(spotId));
@@ -103,17 +91,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Upload photo
-    let photoUrl: string | undefined;
-    if (photoFile && photoFile.size > 0) {
-      try {
-        photoUrl = await uploadImage(photoFile);
-      } catch (error) {
-        console.error('Photo upload failed:', error);
-      }
-    }
-
-    // Create catch
+    // Create catch (without photo for MVP)
     const newCatch: Catch = {
       id: crypto.randomUUID(),
       userId: user.id,
@@ -121,12 +99,12 @@ export async function POST(request: NextRequest) {
       species,
       length,
       weight,
-      photoUrl,
       bait,
       technique,
       weather,
       timestamp,
       notes,
+      // photoUrl disabled for MVP
     };
 
     // Save to Redis
@@ -145,6 +123,7 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/catches?id=xxx - Delete catch
+// NOTE: Photo deletion disabled for MVP
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession();
   if (!session?.user?.email) {
@@ -173,15 +152,6 @@ export async function DELETE(request: NextRequest) {
   const c = catchData as Catch;
   if (c.userId !== user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
-
-  // Delete photo if exists
-  if (c.photoUrl) {
-    const publicId = getPublicIdFromUrl(c.photoUrl);
-    if (publicId) {
-      const { deleteImage } = await import('@/lib/cloudinary');
-      await deleteImage(publicId).catch(console.error);
-    }
   }
 
   // Remove from Redis

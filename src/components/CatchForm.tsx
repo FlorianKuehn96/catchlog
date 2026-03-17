@@ -18,16 +18,6 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
   const [bait, setBait] = useState('');
   const [technique, setTechnique] = useState('');
   const [notes, setNotes] = useState('');
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState('');
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhoto(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,21 +30,19 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
     setError('');
 
     try {
-      const formData = new FormData();
-      formData.append('spotId', selectedSpot);
-      formData.append('species', species);
-      formData.append('length', length);
-      formData.append('weight', weight);
-      formData.append('bait', bait);
-      formData.append('technique', technique);
-      formData.append('notes', notes);
-      if (photo) {
-        formData.append('photo', photo);
-      }
-
+      // NOTE: Photo upload disabled for MVP - Cloudinary not configured
       const res = await fetch('/api/catches', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spotId: selectedSpot,
+          species,
+          length: length ? parseFloat(length) : undefined,
+          weight: weight ? parseFloat(weight) : undefined,
+          bait,
+          technique,
+          notes,
+        }),
       });
 
       if (!res.ok) {
@@ -70,8 +58,6 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
       setBait('');
       setTechnique('');
       setNotes('');
-      setPhoto(null);
-      setPreview('');
       
       onSuccess();
     } catch (err: any) {
@@ -199,18 +185,12 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-500 mb-1">
           Foto
         </label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handlePhotoChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-        {preview && (
-          <img src={preview} alt="Preview" className="mt-2 max-h-32 rounded" />
-        )}
+        <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600">
+          📷 Foto-Upload temporär deaktiviert
+        </div>
       </div>
 
       <div>
