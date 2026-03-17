@@ -15,16 +15,15 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [error, setError] = useState('');
 
+  // Karte initialisieren (einmalig)
   useEffect(() => {
-    // Nur auf Client rendern
     if (typeof window === 'undefined') return;
 
     const initMap = async () => {
       try {
-        // Dynamischer Import
         const leaflet = await import('leaflet');
         L = leaflet.default;
 
@@ -39,27 +38,23 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
 
         if (!mapRef.current || leafletMap.current) return;
 
-        // Karte initialisieren
-        const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6); // Deutschland Zentrum
+        const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6);
 
-        // OpenStreetMap Layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19,
         }).addTo(map);
 
         leafletMap.current = map;
-        setIsLoading(false);
+        setIsMapReady(true);
       } catch (err) {
         console.error('Map init error:', err);
         setError('Karte konnte nicht geladen werden');
-        setIsLoading(false);
       }
     };
 
     initMap();
 
-    // Cleanup
     return () => {
       if (leafletMap.current) {
         leafletMap.current.remove();
@@ -68,12 +63,12 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
     };
   }, []);
 
-  // Marker aktualisieren wenn sich catches ändern
+  // Marker aktualisieren wenn Map ready ODER catches sich ändern
   useEffect(() => {
-    console.log('CatchMap: catches updated:', catches.length, 'catches');
+    console.log('CatchMap: isMapReady:', isMapReady, 'catches:', catches.length);
     
-    if (!L || !leafletMap.current) {
-      console.log('CatchMap: Map not ready yet');
+    if (!L || !leafletMap.current || !isMapReady) {
+      console.log('CatchMap: waiting for map to be ready...');
       return;
     }
 
@@ -81,15 +76,15 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    // Catches mit Koordinaten filtern
+    // Catches mit gültigen Koordinaten filtern
     const catchesWithCoords = catches.filter(
       (c) => typeof c.lat === 'number' && typeof c.lng === 'number' && c.lat !== 0 && c.lng !== 0
     );
     
-    console.log('CatchMap: catches with coords:', catchesWithCoords.length);
+    console.log('CatchMap: catches with valid coords:', catchesWithCoords.length);
 
     if (catchesWithCoords.length === 0) {
-      console.log('CatchMap: No catches with valid coordinates');
+      console.log('CatchMap: no catches with coordinates');
       return;
     }
 
@@ -117,14 +112,16 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
       bounds.extend([lat, lng]);
     });
 
-    // Karte auf alle Marker zoomen
+    console.log('CatchMap: created', markersRef.current.length, 'markers');
+
+    // Karte auf Marker zoomen
     if (catchesWithCoords.length > 1) {
       leafletMap.current.fitBounds(bounds, { padding: [50, 50] });
     } else if (catchesWithCoords.length === 1) {
       const { lat, lng } = catchesWithCoords[0];
       leafletMap.current.setView([lat, lng], 13);
     }
-  }, [catches]);
+  }, [catches, isMapReady]);
 
   if (error) {
     return (
@@ -139,7 +136,7 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
 
   return (
     <div className="relative rounded-lg overflow-hidden" style={{ height }}>
-      {isLoading && (
+      {!isMapReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
           <p className="text-gray-500">Karte wird geladen...</p>
         </div>
