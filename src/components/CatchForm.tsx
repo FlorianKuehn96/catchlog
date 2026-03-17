@@ -293,7 +293,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             required
           />
         </div>
@@ -305,7 +305,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             required
           />
         </div>
@@ -319,7 +319,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           <select
             value={selectedSpot}
             onChange={(e) => setSelectedSpot(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
             required
           >
             <option value="">Gewässer wählen...</option>
@@ -364,7 +364,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
               value={newSpotName}
               onChange={(e) => setNewSpotName(e.target.value)}
               placeholder="Name des Gewässers"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
               required
             />
             <select
@@ -411,7 +411,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           onChange={(e) => setSpecies(e.target.value)}
           list="species-list"
           placeholder="z.B. Hecht"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           required
         />
         <datalist id="species-list">
@@ -432,7 +432,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             value={length}
             onChange={(e) => setLength(e.target.value)}
             placeholder="60"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
         </div>
         <div>
@@ -450,7 +450,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
             placeholder="2.5"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
         </div>
       </div>
@@ -465,7 +465,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           onChange={(e) => setBait(e.target.value)}
           list="bait-list"
           placeholder="z.B. Gummifisch"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           required
         />
         <datalist id="bait-list">
@@ -484,7 +484,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           value={technique}
           onChange={(e) => setTechnique(e.target.value)}
           placeholder="z.B. Schleppend"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
         />
       </div>
 
@@ -506,7 +506,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="Besonderheiten, Wasserstand, etc."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
         />
       </div>
 
