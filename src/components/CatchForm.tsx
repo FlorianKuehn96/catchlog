@@ -1,12 +1,93 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spot } from '@/types';
 
 interface CatchFormProps {
   spots: Spot[];
   onSuccess: () => void;
 }
+
+// Faktoren für Gewichtsberechnung (Länge³ / Faktor = Gewicht in kg)
+const WEIGHT_FACTORS: Record<string, number> = {
+  // Raubfische
+  'Hecht': 3500,
+  'Zander': 3000,
+  'Barsch': 2700,
+  'Flussbarsch': 2700,
+  'Döbel': 3200,
+  'Rapfen': 3000,
+  'Wels': 3800,
+  'Waller': 3800,
+  'Silberwels': 3800,
+  'Ziege': 2800,
+  // Karpfenarten
+  'Karpfen': 3200,
+  'Spiegelkarpfen': 3200,
+  'Schuppenkarpfen': 3200,
+  'Graskarpfen': 3500,
+  'Silberkarpfen': 3200,
+  // Friedfische
+  'Schleie': 3100,
+  'Giebel': 3000,
+  'Brachse': 2900,
+  'Brasse': 2900,
+  'Rotauge': 2500,
+  'Rotfeder': 2500,
+  'Alver': 2800,
+  'Ukelei': 2800,
+  'Laube': 2800,
+  'Gustergarn': 2800,
+  // Salmoniden
+  'Regenbogenforelle': 2800,
+  'Bachforelle': 2800,
+  'Seeforelle': 2900,
+  'Huchen': 3200,
+  'Äsche': 2700,
+  'Seesaibling': 2600,
+  'Bachsaibling': 2600,
+  'Kernling': 2600,
+  'Strömer': 2600,
+  // Sonstige
+  'Aal': 3000,
+  'Flussaal': 3000,
+  'Neunaugen': 3500,
+  'Stör': 4000,
+  'Sterlet': 4000,
+  'Lachs': 3200,
+  'Meerforelle': 2900,
+  // Meeresfische
+  'Dorsch': 3500,
+  'Seehecht': 3600,
+  'Pollack': 3400,
+  'Kohler': 3400,
+  'Hering': 2800,
+  'Makrele': 3000,
+  'Sardine': 2500,
+};
+
+// Deutsche Fischarten (umfangreiche Liste)
+const GERMAN_FISH_SPECIES = [
+  // Raubfische
+  'Hecht', 'Zander', 'Barsch', 'Flussbarsch', 'Döbel', 'Rapfen', 'Wels', 'Waller',
+  'Silberwels', 'Ziege', 'Bachsaibling (Raub)', 
+  // Karpfenarten
+  'Karpfen', 'Spiegelkarpfen', 'Schuppenkarpfen', 'Graskarpfen', 'Silberkarpfen',
+  // Friedfische
+  'Schleie', 'Giebel', 'Brachse', 'Brasse', 'Rotauge', 'Rotfeder', 'Alver',
+  'Ukelei', 'Laube', 'Gustergarn', 'Schtschegolewsky-Karausche', 'Karausche',
+  'Giebel-Karausche', 'Goldorfe', 'Aland', 'Güster', 'Hasel', 'Schneider',
+  // Salmoniden
+  'Regenbogenforelle', 'Bachforelle', 'Seeforelle', 'Huchen', 'Äsche',
+  'Seesaibling', 'Bachsaibling', 'Kernling', 'Strömer',
+  // Sonstige
+  'Aal', 'Flussaal', 'Neunaugen', 'Stör', 'Sterlet', 'Lachs', 'Meerforelle',
+  // Meeresfische (optional)
+  'Dorsch', 'Seehecht', 'Pollack', 'Kohler', 'Hering', 'Makrele', 'Sardine',
+];
+
+// Sortiere alphabetisch
+GERMAN_FISH_SPECIES.sort();
 
 export function CatchForm({ spots, onSuccess }: CatchFormProps) {
   const [loading, setLoading] = useState(false);
@@ -18,6 +99,22 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
   const [bait, setBait] = useState('');
   const [technique, setTechnique] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Automatische Gewichtsberechnung
+  useEffect(() => {
+    if (length && species) {
+      const len = parseFloat(length);
+      if (len > 0) {
+        const factor = WEIGHT_FACTORS[species] || 3000; // Default-Faktor
+        const calculatedWeight = Math.pow(len, 3) / factor / 1000;
+        // Nur aktualisieren wenn Gewicht leer oder sehr nah am berechneten
+        const currentWeight = parseFloat(weight);
+        if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.5) {
+          setWeight(calculatedWeight.toFixed(2));
+        }
+      }
+    }
+  }, [length, species]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,15 +164,27 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
     }
   };
 
-  const commonSpecies = [
-    'Hecht', 'Zander', 'Barsch', 'Forelle', 'Karpfen', 
-    'Schleie', 'Aal', 'Döbel', 'Rapfen', 'Wels'
-  ];
-
   const commonBaits = [
     'Gummifisch', 'Wobbler', 'Spinner', 'Jerkbait', 
-    'Jig', 'Köderfisch', 'Maden', 'Wurm'
+    'Jig', 'Köderfisch', 'Maden', 'Wurm', 'Boilie',
+    'Pellet', 'Mais', 'Brot', 'Teig', 'Spinnerbait',
+    'Crankbait', 'Softbait', 'Spoon', 'Blinker',
+    'Kunstköder', 'Natürköder', 'Fliege', 'Nymphe',
   ];
+
+  // Get calculated weight for display
+  const getCalculatedWeight = () => {
+    if (length && species) {
+      const len = parseFloat(length);
+      if (len > 0) {
+        const factor = WEIGHT_FACTORS[species] || 3000;
+        return (Math.pow(len, 3) / factor / 1000).toFixed(2);
+      }
+    }
+    return null;
+  };
+
+  const calculatedWeight = getCalculatedWeight();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow">
@@ -116,7 +225,7 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
           required
         />
         <datalist id="species-list">
-          {commonSpecies.map((s) => (
+          {GERMAN_FISH_SPECIES.map((s) => (
             <option key={s} value={s} />
           ))}
         </datalist>
@@ -139,6 +248,11 @@ export function CatchForm({ spots, onSuccess }: CatchFormProps) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Gewicht (kg)
+            {calculatedWeight && (
+              <span className="ml-2 text-xs text-blue-600 font-normal">
+                (ca. {calculatedWeight} kg berechnet)
+              </span>
+            )}
           </label>
           <input
             type="number"
