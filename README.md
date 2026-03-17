@@ -8,7 +8,6 @@ Dein digitaler Fangbericht. Speichere deine Angelerfolge mit Standort, Wetter un
 - 📍 **Spot-Verwaltung** mit Geo-Suche in der Nähe
 - 🤖 **KI-Köder-Empfehlung** basierend auf Wetter & Spot
 - 📊 **Statistiken** - Fangrate, beste Zeiten, erfolgreichste Spots
-- 💳 **Pro-Version** via Stripe (unbegrenzte Fänge)
 - 📱 **PWA** - Installierbar als Mobile App
 
 ## Tech Stack
@@ -16,7 +15,6 @@ Dein digitaler Fangbericht. Speichere deine Angelerfolge mit Standort, Wetter un
 - Next.js 16 + TypeScript + Tailwind CSS
 - NextAuth.js (Google OAuth)
 - Upstash Redis (Datenbank)
-- Stripe (Zahlungen)
 - Cloudinary (Bild-Upload)
 - Open-Meteo API (Wetter)
 
@@ -25,7 +23,7 @@ Dein digitaler Fangbericht. Speichere deine Angelerfolge mit Standort, Wetter un
 ### 1. Repository klonen
 
 ```bash
-git clone https://github.com/yourusername/catchlog.git
+git clone https://github.com/FlorianKuehn96/catchlog.git
 cd catchlog
 ```
 
@@ -59,16 +57,6 @@ npm run dev
 3. Füge Environment Variables hinzu
 4. Deploy 🚀
 
-### Stripe Webhook einrichten
-
-1. Stripe Dashboard → Webhooks
-2. Endpoint: `https://your-domain.com/api/stripe/webhook`
-3. Events:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_failed`
-
 ## Environment Variables
 
 | Variable | Beschreibung | Woher? |
@@ -77,7 +65,6 @@ npm run dev
 | `UPSTASH_REDIS_REST_TOKEN` | Redis Token | [Upstash](https://upstash.com) |
 | `NEXTAUTH_SECRET` | Auth Secret | `openssl rand -base64 32` |
 | `GOOGLE_CLIENT_ID` | Google OAuth | [Google Cloud](https://console.cloud.google.com) |
-| `STRIPE_SECRET_KEY` | Stripe Secret | [Stripe Dashboard](https://dashboard.stripe.com) |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary Name | [Cloudinary](https://cloudinary.com) |
 
 ## API Endpoints
@@ -89,8 +76,6 @@ npm run dev
 | `/api/spots/nearby` | GET | Spots in der Nähe |
 | `/api/recommend` | GET | KI-Köder-Empfehlung |
 | `/api/stats` | GET | Statistiken |
-| `/api/stripe/checkout` | POST | Pro-Upgrade |
-| `/api/stripe/webhook` | POST | Stripe Events |
 
 ## Lizenz
 
