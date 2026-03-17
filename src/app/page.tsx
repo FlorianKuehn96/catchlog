@@ -57,22 +57,34 @@ export default async function Home() {
             <div className="p-6 border rounded-xl">
               <h3 className="text-lg font-semibold mb-2">Free</h3>
               <p className="text-3xl font-bold mb-4">€0</p>
-              <ul className="space-y-2 text-gray-600">
+              <ul className="space-y-2 text-gray-600 mb-6">
                 <li>✓ 50 Fänge/Monat</li>
                 <li>✓ Basis-Statistiken</li>
                 <li>✓ Foto-Upload</li>
               </ul>
+              <Link
+                href="/login"
+                className="block w-full text-center py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Kostenlos starten
+              </Link>
             </div>
             
             <div className="p-6 border-2 border-blue-500 rounded-xl bg-blue-50">
               <h3 className="text-lg font-semibold mb-2">Pro</h3>
               <p className="text-3xl font-bold mb-4">€4.99/Monat</p>
-              <ul className="space-y-2 text-gray-600">
+              <ul className="space-y-2 text-gray-600 mb-6">
                 <li>✓ Unbegrenzte Fänge</li>
                 <li>✓ KI-Empfehlungen</li>
                 <li>✓ Wetter-Prognose</li>
                 <li>✓ Export-Funktion</li>
               </ul>
+              <Link
+                href="/login?plan=pro"
+                className="block w-full text-center py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Pro auswählen
+              </Link>
             </div>
           </div>
         </div>
