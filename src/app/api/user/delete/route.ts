@@ -40,10 +40,10 @@ export async function DELETE(req: NextRequest) {
     await redis.del(keys.user(session.user.email));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting user:', error);
     return NextResponse.json(
-      { error: 'Fehler beim Löschen des Accounts' },
+      { error: `Fehler: ${error.message || 'Unbekannter Fehler'}` },
       { status: 500 }
     );
   }
