@@ -5,94 +5,37 @@ import { Spot, Catch } from '@/types';
 
 interface CatchFormProps {
   spots: Spot[];
-  initialCatch?: Catch; // Für Bearbeiten
+  catches: Catch[];
+  initialCatch?: Catch;
   onSuccess: () => void;
   onCancel?: () => void;
 }
 
-// Faktoren für Gewichtsberechnung (Länge³ / Faktor = Gewicht in kg)
-// Korrektur: Faktoren angepasst für realistische Gewichte
+// Faktoren für Gewichtsberechnung
 const WEIGHT_FACTORS: Record<string, number> = {
-  // Raubfische (schlanke, muskulöse Fische)
-  'Hecht': 85,
-  'Zander': 95,
-  'Barsch': 90,
-  'Flussbarsch': 90,
-  'Döbel': 100,
-  'Rapfen': 95,
-  'Wels': 120,      // Wels ist dicklicher
-  'Waller': 120,
-  'Silberwels': 120,
-  'Ziege': 100,
-  // Karpfenarten (dickere, rundere Fische)
-  'Karpfen': 110,
-  'Spiegelkarpfen': 110,
-  'Schuppenkarpfen': 110,
-  'Graskarpfen': 130,
-  'Silberkarpfen': 110,
-  // Friedfische
-  'Schleie': 100,
-  'Giebel': 95,
-  'Brachse': 85,
-  'Brasse': 85,
-  'Rotauge': 75,
-  'Rotfeder': 75,
-  'Alver': 90,
-  'Ukelei': 90,
-  'Laube': 90,
-  'Gustergarn': 90,
-  // Salmoniden (schlanke, sportliche Fische)
-  'Regenbogenforelle': 70,
-  'Bachforelle': 70,
-  'Seeforelle': 75,
-  'Huchen': 85,
-  'Äsche': 75,
-  'Seesaibling': 70,
-  'Bachsaibling': 70,
-  'Kernling': 70,
-  'Strömer': 70,
-  // Sonstige
-  'Aal': 100,       // Aal ist sehr lang und schlank
-  'Flussaal': 100,
-  'Neunaugen': 150,
-  'Stör': 140,      // Stör ist sehr dick
-  'Sterlet': 140,
-  'Lachs': 80,
-  'Meerforelle': 75,
-  // Meeresfische
-  'Dorsch': 90,
-  'Seehecht': 95,
-  'Pollack': 90,
-  'Kohler': 90,
-  'Hering': 70,
-  'Makrele': 80,
-  'Sardine': 60,
+  'Hecht': 85, 'Zander': 95, 'Barsch': 90, 'Flussbarsch': 90, 'Döbel': 100,
+  'Rapfen': 95, 'Wels': 120, 'Waller': 120, 'Silberwels': 120, 'Ziege': 100,
+  'Karpfen': 110, 'Spiegelkarpfen': 110, 'Schuppenkarpfen': 110, 'Graskarpfen': 130,
+  'Silberkarpfen': 110, 'Schleie': 100, 'Giebel': 95, 'Brachse': 85, 'Brasse': 85,
+  'Rotauge': 75, 'Rotfeder': 75, 'Alver': 90, 'Ukelei': 90, 'Laube': 90,
+  'Gustergarn': 90, 'Regenbogenforelle': 70, 'Bachforelle': 70, 'Seeforelle': 75,
+  'Huchen': 85, 'Äsche': 75, 'Seesaibling': 70, 'Bachsaibling': 70, 'Kernling': 70,
+  'Strömer': 70, 'Aal': 100, 'Flussaal': 100, 'Neunaugen': 150, 'Stör': 140,
+  'Sterlet': 140, 'Lachs': 80, 'Meerforelle': 75, 'Dorsch': 90, 'Seehecht': 95,
+  'Pollack': 90, 'Kohler': 90, 'Hering': 70, 'Makrele': 80, 'Sardine': 60,
 };
 
-// Deutsche Fischarten (umfangreiche Liste)
 const GERMAN_FISH_SPECIES = [
-  // Raubfische
   'Hecht', 'Zander', 'Barsch', 'Flussbarsch', 'Döbel', 'Rapfen', 'Wels', 'Waller',
-  'Silberwels', 'Ziege', 'Bachsaibling (Raub)', 
-  // Karpfenarten
-  'Karpfen', 'Spiegelkarpfen', 'Schuppenkarpfen', 'Graskarpfen', 'Silberkarpfen',
-  // Friedfische
-  'Schleie', 'Giebel', 'Brachse', 'Brasse', 'Rotauge', 'Rotfeder', 'Alver',
-  'Ukelei', 'Laube', 'Gustergarn', 'Schtschegolewsky-Karausche', 'Karausche',
-  'Giebel-Karausche', 'Goldorfe', 'Aland', 'Güster', 'Hasel', 'Schneider',
-  // Salmoniden
-  'Regenbogenforelle', 'Bachforelle', 'Seeforelle', 'Huchen', 'Äsche',
-  'Seesaibling', 'Bachsaibling', 'Kernling', 'Strömer',
-  // Sonstige
-  'Aal', 'Flussaal', 'Neunaugen', 'Stör', 'Sterlet', 'Lachs', 'Meerforelle',
-  // Meeresfische (optional)
+  'Silberwels', 'Ziege', 'Karpfen', 'Spiegelkarpfen', 'Schuppenkarpfen', 'Graskarpfen',
+  'Silberkarpfen', 'Schleie', 'Giebel', 'Brachse', 'Brasse', 'Rotauge', 'Rotfeder',
+  'Alver', 'Ukelei', 'Laube', 'Gustergarn', 'Regenbogenforelle', 'Bachforelle',
+  'Seeforelle', 'Huchen', 'Äsche', 'Seesaibling', 'Bachsaibling', 'Kernling',
+  'Strömer', 'Aal', 'Flussaal', 'Neunaugen', 'Stör', 'Sterlet', 'Lachs', 'Meerforelle',
   'Dorsch', 'Seehecht', 'Pollack', 'Kohler', 'Hering', 'Makrele', 'Sardine',
-];
+].sort();
 
-// Sortiere alphabetisch
-GERMAN_FISH_SPECIES.sort();
-
-export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFormProps) {
+export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }: CatchFormProps) {
   const isEditing = !!initialCatch;
   
   const [loading, setLoading] = useState(false);
@@ -105,7 +48,7 @@ export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFor
   const [technique, setTechnique] = useState(initialCatch?.technique || '');
   const [notes, setNotes] = useState(initialCatch?.notes || '');
   
-  // Zeitstempel - für neue Fänge: jetzt, für Bearbeiten: bestehender Wert
+  // Zeitstempel
   const [date, setDate] = useState(() => {
     if (initialCatch?.date) return initialCatch.date;
     return new Date().toISOString().split('T')[0];
@@ -115,9 +58,61 @@ export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFor
     return new Date().toTimeString().slice(0, 5);
   });
 
+  // Neues Gewässer Modal
+  const [showNewSpot, setShowNewSpot] = useState(false);
+  const [newSpotName, setNewSpotName] = useState('');
+  const [newSpotType, setNewSpotType] = useState<Spot['type']>('lake');
+  const [newSpotLoading, setNewSpotLoading] = useState(false);
+
+  // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
+  useEffect(() => {
+    if (!isEditing && catches.length > 0 && !selectedSpot) {
+      // Neuesten Fang finden
+      const sorted = [...catches].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      if (sorted[0]?.spotId) {
+        setSelectedSpot(sorted[0].spotId);
+      }
+    }
+  }, [catches, isEditing, selectedSpot]);
+
+  // GPS-basierte Gewässer-Erkennung
+  const detectNearestSpot = () => {
+    if (spots.length === 0 || !navigator.geolocation) return;
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Nächstgelegenes Gewässer finden
+        let nearestSpot: Spot | null = null;
+        let minDistance = Infinity;
+        
+        spots.forEach((spot: Spot) => {
+          const dist = Math.sqrt(
+            Math.pow(spot.lat - latitude, 2) + Math.pow(spot.lng - longitude, 2)
+          );
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestSpot = spot;
+          }
+        });
+        
+        // Nur wenn innerhalb von ~500m (ca. 0.005 Grad)
+        if (nearestSpot && minDistance < 0.005) {
+          setSelectedSpot((nearestSpot as Spot).id);
+        }
+      },
+      () => {
+        // GPS Fehler - ignorieren
+      }
+    );
+  };
+
   // Automatische Gewichtsberechnung
   useEffect(() => {
-    if (length && species && !isEditing) { // Nur bei neuen Fängen auto-berechnen
+    if (length && species && !isEditing) {
       const len = parseFloat(length);
       if (len > 0) {
         const factor = WEIGHT_FACTORS[species] || 3000;
@@ -128,7 +123,47 @@ export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFor
         }
       }
     }
-  }, [length, species, isEditing]);
+  }, [length, species, isEditing, weight]);
+
+  const handleNewSpot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSpotName) return;
+
+    setNewSpotLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const res = await fetch('/api/spots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: newSpotName,
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              type: newSpotType,
+            }),
+          });
+
+          if (!res.ok) throw new Error('Fehler beim Speichern');
+
+          const data = await res.json();
+          setSelectedSpot(data.spot.id);
+          setNewSpotName('');
+          setShowNewSpot(false);
+          onSuccess(); // Liste neu laden
+        } catch (err: any) {
+          setError(err.message);
+        } finally {
+          setNewSpotLoading(false);
+        }
+      },
+      () => {
+        setError('Standort konnte nicht ermittelt werden');
+        setNewSpotLoading(false);
+      }
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,14 +210,12 @@ export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFor
   };
 
   const commonBaits = [
-    'Gummifisch', 'Wobbler', 'Spinner', 'Jerkbait', 
-    'Jig', 'Köderfisch', 'Maden', 'Wurm', 'Boilie',
-    'Pellet', 'Mais', 'Brot', 'Teig', 'Spinnerbait',
-    'Crankbait', 'Softbait', 'Spoon', 'Blinker',
+    'Gummifisch', 'Wobbler', 'Spinner', 'Jerkbait', 'Jig', 'Köderfisch',
+    'Maden', 'Wurm', 'Boilie', 'Pellet', 'Mais', 'Brot', 'Teig',
+    'Spinnerbait', 'Crankbait', 'Softbait', 'Spoon', 'Blinker',
     'Kunstköder', 'Natürköder', 'Fliege', 'Nymphe',
   ];
 
-  // Get calculated weight for display
   const getCalculatedWeight = () => {
     if (length && species) {
       const len = parseFloat(length);
@@ -237,18 +270,91 @@ export function CatchForm({ spots, initialCatch, onSuccess, onCancel }: CatchFor
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Gewässer *
         </label>
-        <select
-          value={selectedSpot}
-          onChange={(e) => setSelectedSpot(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          required
-        >
-          <option value="">Gewässer wählen...</option>
-          {spots.map((spot) => (
-            <option key={spot.id} value={spot.id}>{spot.name}</option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={selectedSpot}
+            onChange={(e) => setSelectedSpot(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          >
+            <option value="">Gewässer wählen...</option>
+            {spots.map((spot) => (
+              <option key={spot.id} value={spot.id}>{spot.name}</option>
+            ))}
+          </select>
+          
+          <button
+            type="button"
+            onClick={() => setShowNewSpot(true)}
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm whitespace-nowrap"
+            title="Neues Gewässer anlegen"
+          >
+            + Neu
+          </button>
+          
+          <button
+            type="button"
+            onClick={detectNearestSpot}
+            className="px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 text-sm whitespace-nowrap"
+            title="Nächstgelegenes Gewässer per GPS finden"
+          >
+            📍 GPS
+          </button>
+        </div>
+        
+        {!isEditing && selectedSpot && (
+          <p className="text-xs text-gray-500 mt-1">
+            Letztes Gewässer vorausgefüllt
+          </p>
+        )}
       </div>
+
+      {/* Neues Gewässer Modal */}
+      {showNewSpot && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-medium text-blue-900 mb-3">🌊 Neues Gewässer anlegen</h4>
+          <form onSubmit={handleNewSpot} className="space-y-3">
+            <input
+              type="text"
+              value={newSpotName}
+              onChange={(e) => setNewSpotName(e.target.value)}
+              placeholder="Name des Gewässers"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+            <select
+              value={newSpotType}
+              onChange={(e) => setNewSpotType(e.target.value as Spot['type'])}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="lake">See</option>
+              <option value="river">Fluss</option>
+              <option value="pond">Teich</option>
+              <option value="canal">Kanal</option>
+              <option value="sea">Meer</option>
+            </select>
+            <p className="text-xs text-gray-600">
+              📍 Aktueller Standort wird automatisch gespeichert
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={newSpotLoading}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+              >
+                {newSpotLoading ? 'Speichern...' : 'Gewässer speichern'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewSpot(false)}
+                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-md"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">

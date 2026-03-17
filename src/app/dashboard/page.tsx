@@ -161,13 +161,14 @@ export default function Dashboard() {
                 </p>
                 <CatchForm
                   spots={spots}
+                  catches={catches}
                   initialCatch={editingCatch}
                   onSuccess={handleEditSuccess}
                   onCancel={() => setEditingCatch(undefined)}
                 />
               </div>
             ) : (
-              <CatchForm spots={spots} onSuccess={loadData} />
+              <CatchForm spots={spots} catches={catches} onSuccess={loadData} />
             )}
           </div>
 
