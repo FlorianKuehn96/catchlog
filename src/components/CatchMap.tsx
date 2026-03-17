@@ -78,7 +78,7 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
 
     // Catches mit Koordinaten filtern
     const catchesWithCoords = catches.filter(
-      (c) => c.spot?.lat && c.spot?.lng
+      (c) => typeof c.lat === 'number' && typeof c.lng === 'number'
     );
 
     if (catchesWithCoords.length === 0) return;
@@ -87,15 +87,15 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
     const bounds = L.latLngBounds();
 
     catchesWithCoords.forEach((catchItem) => {
-      const { spot, species, length, weight, date, time } = catchItem;
-      if (!spot) return;
+      const { lat, lng, spot, species, length, weight, date, time } = catchItem;
+      if (lat == null || lng == null) return;
 
-      const marker = L.marker([spot.lat, spot.lng])
+      const marker = L.marker([lat, lng])
         .addTo(leafletMap.current)
         .bindPopup(`
           <div class="p-2">
             <h4 class="font-bold text-gray-900">${species}</h4>
-            <p class="text-sm text-gray-600">${spot.name}</p>
+            <p class="text-sm text-gray-600">${spot?.name || 'Unbekanntes Gewässer'}</p>
             <hr class="my-2">
             ${length ? `<p class="text-sm">📏 ${length} cm</p>` : ''}
             ${weight ? `<p class="text-sm">⚖️ ${weight} kg</p>` : ''}
@@ -104,7 +104,7 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
         `);
 
       markersRef.current.push(marker);
-      bounds.extend([spot.lat, spot.lng]);
+      bounds.extend([lat, lng]);
     });
 
     // Karte auf alle Marker zoomen

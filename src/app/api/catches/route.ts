@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
       id: crypto.randomUUID(),
       userId: user.id,
       spotId,
+      lat: spot.lat,        // Kopie für Karte
+      lng: spot.lng,        // Kopie für Karte
       species,
       length,
       weight,
@@ -182,6 +184,18 @@ export async function PUT(request: NextRequest) {
     let date = existingCatch.date;
     let time = existingCatch.time;
     let sunPosition = existingCatch.sunPosition;
+    let lat = existingCatch.lat;
+    let lng = existingCatch.lng;
+    
+    // If spot changed, update coordinates
+    if (updates.spotId && updates.spotId !== existingCatch.spotId) {
+      const newSpotData = await redis.get(keys.spot(updates.spotId));
+      if (newSpotData) {
+        const newSpot = newSpotData as any;
+        lat = newSpot.lat;
+        lng = newSpot.lng;
+      }
+    }
     
     if (updates.timestamp && updates.timestamp !== existingCatch.timestamp) {
       const catchDate = new Date(updates.timestamp);
@@ -190,7 +204,7 @@ export async function PUT(request: NextRequest) {
       
       // Recalculate sun position
       try {
-        const spotData = await redis.get(keys.spot(existingCatch.spotId));
+        const spotData = await redis.get(keys.spot(updates.spotId || existingCatch.spotId));
         if (spotData) {
           const spot = spotData as any;
           sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
@@ -204,6 +218,8 @@ export async function PUT(request: NextRequest) {
     const updatedCatch: Catch = {
       ...existingCatch,
       ...updates,
+      lat,
+      lng,
       date,
       time,
       sunPosition,
