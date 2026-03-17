@@ -11,18 +11,63 @@ interface CatchFormProps {
   onCancel?: () => void;
 }
 
-// Faktoren für Gewichtsberechnung
+// Faktoren für Gewichtsberechnung: Gewicht(kg) = (Länge(cm)³) / Faktor
+// Standard-Formel für deutsche Süßwasserfische
 const WEIGHT_FACTORS: Record<string, number> = {
-  'Hecht': 85, 'Zander': 95, 'Barsch': 90, 'Flussbarsch': 90, 'Döbel': 100,
-  'Rapfen': 95, 'Wels': 120, 'Waller': 120, 'Silberwels': 120, 'Ziege': 100,
-  'Karpfen': 110, 'Spiegelkarpfen': 110, 'Schuppenkarpfen': 110, 'Graskarpfen': 130,
-  'Silberkarpfen': 110, 'Schleie': 100, 'Giebel': 95, 'Brachse': 85, 'Brasse': 85,
-  'Rotauge': 75, 'Rotfeder': 75, 'Alver': 90, 'Ukelei': 90, 'Laube': 90,
-  'Gustergarn': 90, 'Regenbogenforelle': 70, 'Bachforelle': 70, 'Seeforelle': 75,
-  'Huchen': 85, 'Äsche': 75, 'Seesaibling': 70, 'Bachsaibling': 70, 'Kernling': 70,
-  'Strömer': 70, 'Aal': 100, 'Flussaal': 100, 'Neunaugen': 150, 'Stör': 140,
-  'Sterlet': 140, 'Lachs': 80, 'Meerforelle': 75, 'Dorsch': 90, 'Seehecht': 95,
-  'Pollack': 90, 'Kohler': 90, 'Hering': 70, 'Makrele': 80, 'Sardine': 60,
+  // Raubfische
+  'Hecht': 3500,
+  'Zander': 3000,
+  'Barsch': 2700,
+  'Flussbarsch': 2700,
+  'Döbel': 3200,
+  'Rapfen': 3100,
+  'Wels': 4000,
+  'Waller': 4000,
+  'Silberwels': 4000,
+  'Ziege': 3300,
+  // Karpfenarten
+  'Karpfen': 3200,
+  'Spiegelkarpfen': 3200,
+  'Schuppenkarpfen': 3200,
+  'Graskarpfen': 3500,
+  'Silberkarpfen': 3200,
+  // Friedfische
+  'Schleie': 3100,
+  'Giebel': 3000,
+  'Brachse': 2800,
+  'Brasse': 2800,
+  'Rotauge': 2500,
+  'Rotfeder': 2500,
+  'Alver': 2900,
+  'Ukelei': 2900,
+  'Laube': 2900,
+  'Gustergarn': 2900,
+  // Salmoniden
+  'Regenbogenforelle': 2800,
+  'Bachforelle': 2800,
+  'Seeforelle': 2900,
+  'Huchen': 3200,
+  'Äsche': 2700,
+  'Seesaibling': 2800,
+  'Bachsaibling': 2800,
+  'Kernling': 2800,
+  'Strömer': 2800,
+  // Sonstige
+  'Aal': 3000,
+  'Flussaal': 3000,
+  'Neunaugen': 3500,
+  'Stör': 4500,
+  'Sterlet': 4500,
+  'Lachs': 3000,
+  'Meerforelle': 2900,
+  // Meeresfische
+  'Dorsch': 3200,
+  'Seehecht': 3300,
+  'Pollack': 3200,
+  'Kohler': 3200,
+  'Hering': 2800,
+  'Makrele': 3000,
+  'Sardine': 2500,
 };
 
 const GERMAN_FISH_SPECIES = [
@@ -444,10 +489,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Foto
         </label>
-        <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600">
+        <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-700">
           📷 Foto-Upload temporär deaktiviert
         </div>
       </div>
