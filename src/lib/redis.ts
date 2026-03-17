@@ -27,16 +27,16 @@ export function parseRedisData<T>(data: unknown): T | null {
   return data as T;
 }
 
-// Keys
+// Keys - ALL prefixed with 'catchlog:' to avoid conflicts with other projects
 export const keys = {
-  user: (id: string) => `user:${id}`,
-  spot: (id: string) => `spot:${id}`,
-  spotsByUser: (userId: string) => `spots:${userId}`,
-  catch: (id: string) => `catch:${id}`,
-  catchesByUser: (userId: string) => `catches:${userId}`,
-  catchesBySpot: (spotId: string) => `catches:spot:${spotId}`,
-  bait: (id: string) => `bait:${id}`,
-  baits: () => 'baits:all',
+  user: (id: string) => `catchlog:user:${id}`,
+  spot: (id: string) => `catchlog:spot:${id}`,
+  spotsByUser: (userId: string) => `catchlog:spots:${userId}`,
+  catch: (id: string) => `catchlog:catch:${id}`,
+  catchesByUser: (userId: string) => `catchlog:catches:${userId}`,
+  catchesBySpot: (spotId: string) => `catchlog:catches:spot:${spotId}`,
+  bait: (id: string) => `catchlog:bait:${id}`,
+  baits: () => 'catchlog:baits:all',
 };
 
 // Legacy export for backwards compatibility - DO NOT USE in new code
