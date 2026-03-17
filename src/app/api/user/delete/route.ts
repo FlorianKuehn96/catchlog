@@ -22,19 +22,29 @@ export async function DELETE(req: NextRequest) {
     const user = userData as any;
     const userId = user.id;
 
-    // Delete all user's catches
-    const catchIds = await redis.get(keys.catchesByUser(userId)) as string[] || [];
-    for (const catchId of catchIds) {
-      await redis.del(keys.catch(catchId));
+    // Delete all user's catches - handle both array and string formats
+    try {
+      const catchesData = await redis.get(keys.catchesByUser(userId));
+      const catchIds = Array.isArray(catchesData) ? catchesData : [];
+      for (const catchId of catchIds) {
+        if (catchId) await redis.del(keys.catch(catchId));
+      }
+      await redis.del(keys.catchesByUser(userId));
+    } catch (e) {
+      console.log('No catches to delete or error:', e);
     }
-    await redis.del(keys.catchesByUser(userId));
 
-    // Delete all user's spots
-    const spotIds = await redis.get(keys.spotsByUser(userId)) as string[] || [];
-    for (const spotId of spotIds) {
-      await redis.del(keys.spot(spotId));
+    // Delete all user's spots - handle both array and string formats
+    try {
+      const spotsData = await redis.get(keys.spotsByUser(userId));
+      const spotIds = Array.isArray(spotsData) ? spotsData : [];
+      for (const spotId of spotIds) {
+        if (spotId) await redis.del(keys.spot(spotId));
+      }
+      await redis.del(keys.spotsByUser(userId));
+    } catch (e) {
+      console.log('No spots to delete or error:', e);
     }
-    await redis.del(keys.spotsByUser(userId));
 
     // Delete user
     await redis.del(keys.user(session.user.email));
