@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
 import { fetchWeather } from '@/lib/weather';
 import type { User, Catch, Spot, Recommendation } from '@/types';
 
 // GET /api/recommend?spotId=xxx - Get bait recommendation
 export async function GET(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

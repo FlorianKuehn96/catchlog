@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
 import { fetchWeather, getSunPosition } from '@/lib/weather';
 import type { Catch, User } from '@/types';
 
 // GET /api/catches - List all catches for user
 export async function GET(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 // POST /api/catches - Create new catch
 // NOTE: Photo upload disabled for MVP - Cloudinary not configured
 export async function POST(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/catches - Update existing catch
 export async function PUT(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -243,7 +244,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/catches?id=xxx - Delete catch
 // NOTE: Photo deletion disabled for MVP
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

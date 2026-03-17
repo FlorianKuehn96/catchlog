@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
 import type { Spot, User, Catch } from '@/types';
 
 // GET /api/spots - List all spots for user
 export async function GET(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/spots - Create new spot
 export async function POST(request: NextRequest) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
