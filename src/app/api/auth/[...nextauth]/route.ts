@@ -19,7 +19,7 @@ const DEFAULT_SPOTS: Omit<Spot, 'id' | 'userId' | 'createdAt'>[] = [
   { name: 'Neckar', lat: 49.4875, lng: 8.4660, type: 'river' },
 ];
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -27,7 +27,7 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: any) {
       if (!user.email) return false;
       
       const redis = getRedis();
@@ -65,7 +65,7 @@ const handler = NextAuth({
       
       return true;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session.user?.email) {
         const redis = getRedis();
         const userData = await redis.get(keys.user(session.user.email));
@@ -79,7 +79,7 @@ const handler = NextAuth({
       }
       return session;
     },
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account }: any) {
       if (account) {
         token.accessToken = account.access_token;
       }
@@ -89,6 +89,8 @@ const handler = NextAuth({
   pages: {
     signIn: '/login',
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
