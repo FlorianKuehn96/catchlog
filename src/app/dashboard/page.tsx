@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import { CatchForm } from '@/components/CatchForm';
 import { Recommend } from '@/components/Recommend';
 import { CatchMap } from '@/components/CatchMap';
 import { Spot, Catch } from '@/types';
 
 export default function Dashboard() {
+  const { data: session } = useSession();
   const [spots, setSpots] = useState<Spot[]>([]);
   const [catches, setCatches] = useState<Catch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +137,15 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">🎣 CatchLog</h1>
           <div className="flex items-center gap-4">
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-2xl">👤</span>
+              <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                {session?.user?.name || 'Profil'}
+              </span>
+            </Link>
             <button
               onClick={() => {
                 window.location.href = '/';
