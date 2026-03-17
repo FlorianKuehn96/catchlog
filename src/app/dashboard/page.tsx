@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CatchForm } from '@/components/CatchForm';
 import { Recommend } from '@/components/Recommend';
+import { CatchMap } from '@/components/CatchMap';
 import { Spot, Catch } from '@/types';
 
 export default function Dashboard() {
@@ -10,10 +11,11 @@ export default function Dashboard() {
   const [catches, setCatches] = useState<Catch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'catches' | 'spots' | 'recommend'>('catches');
+  const [activeTab, setActiveTab] = useState<'catches' | 'spots' | 'map' | 'recommend'>('catches');
   const [showAddSpot, setShowAddSpot] = useState(false);
   const [newSpotName, setNewSpotName] = useState('');
   const [newSpotType, setNewSpotType] = useState<Spot['type']>('lake');
+  const [editingCatch, setEditingCatch] = useState<Catch | undefined>(undefined);
 
   const loadData = async () => {
     try {
@@ -46,7 +48,6 @@ export default function Dashboard() {
     e.preventDefault();
     if (!newSpotName) return;
 
-    // Get current location
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -88,6 +89,37 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditCatch = (c: Catch) => {
+    setEditingCatch(c);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditSuccess = () => {
+    setEditingCatch(undefined);
+    loadData();
+  };
+
+  // Format sun position for display
+  const formatSunPosition = (sunPos: Catch['sunPosition']) => {
+    if (!sunPos) return null;
+    
+    const { hoursFromSunrise, hoursFromSunset, phase } = sunPos;
+    
+    if (phase === 'dawn') return '🌅 Morgendämmerung';
+    if (phase === 'dusk') return '🌆 Abenddämmerung';
+    if (phase === 'night') return '🌙 Nacht';
+    
+    // Daytime
+    if (hoursFromSunrise >= 0 && hoursFromSunrise < 1) return '🌅 Direkt nach Sonnenaufgang';
+    if (hoursFromSunset <= 0 && hoursFromSunset > -1) return '🌆 Direkt vor Sonnenuntergang';
+    
+    if (hoursFromSunrise >= 0) {
+      return `☀️ ${Math.round(hoursFromSunrise * 10) / 10}h nach Sonnenaufgang`;
+    } else {
+      return `☀️ ${Math.round(Math.abs(hoursFromSunrise) * 10) / 10}h vor Sonnenaufgang`;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -122,17 +154,32 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Form */}
           <div className="lg:col-span-1">
-            <CatchForm spots={spots} onSuccess={loadData} />
+            {editingCatch ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-yellow-800 font-medium mb-2">
+                  ✏️ Bearbeite Fang: {editingCatch.species}
+                </p>
+                <CatchForm
+                  spots={spots}
+                  initialCatch={editingCatch}
+                  onSuccess={handleEditSuccess}
+                  onCancel={() => setEditingCatch(undefined)}
+                />
+              </div>
+            ) : (
+              <CatchForm spots={spots} onSuccess={loadData} />
+            )}
           </div>
 
           {/* Right Column - Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200">
+            <div className="flex gap-2 border-b border-gray-200 flex-wrap">
               {[
                 { key: 'catches', label: `Meine Fänge (${catches.length})` },
                 { key: 'spots', label: `Gewässer (${spots.length})` },
-                { key: 'recommend', label: 'Empfehlung' },
+                { key: 'map', label: '🗺️ Karte' },
+                { key: 'recommend', label: '💡 Empfehlung' },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -157,33 +204,53 @@ export default function Dashboard() {
                   </p>
                 ) : (
                   catches.map((c) => (
-                    <div key={c.id} className="bg-white p-4 rounded-lg shadow flex gap-4">
-                      {c.photoUrl && (
-                        <img
-                          src={c.photoUrl}
-                          alt={c.species}
-                          className="w-24 h-24 object-cover rounded"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{c.species}</h4>
-                            <p className="text-sm text-gray-500">
-                              {c.spot?.name} • {new Date(c.timestamp).toLocaleDateString('de-DE')}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {c.length && `${c.length}cm `}
-                              {c.weight && `${c.weight}kg `}
-                              {c.bait && `• ${c.bait}`}
-                            </p>
+                    <div key={c.id} className="bg-white p-4 rounded-lg shadow">
+                      <div className="flex gap-4">
+                        {c.photoUrl && (
+                          <img
+                            src={c.photoUrl}
+                            alt={c.species}
+                            className="w-24 h-24 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{c.species}</h4>
+                              <p className="text-sm text-gray-500">
+                                {c.spot?.name} • {c.date || new Date(c.timestamp).toLocaleDateString('de-DE')} {c.time}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {c.length && `📏 ${c.length}cm `}
+                                {c.weight && `⚖️ ${c.weight}kg `}
+                                {c.bait && `• ${c.bait}`}
+                              </p>
+                              {c.sunPosition && (
+                                <p className="text-xs text-amber-600 mt-1">
+                                  {formatSunPosition(c.sunPosition)}
+                                </p>
+                              )}
+                              {c.notes && (
+                                <p className="text-sm text-gray-500 mt-1 italic">
+                                  „{c.notes}"
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditCatch(c)}
+                                className="text-blue-500 hover:text-blue-700 text-sm px-2 py-1"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCatch(c.id)}
+                                className="text-red-500 hover:text-red-700 text-sm px-2 py-1"
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => handleDeleteCatch(c.id)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Löschen
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -258,6 +325,17 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {activeTab === 'map' && (
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    🗺️ Fang-Karte
+                  </h3>
+                  <CatchMap catches={catches} height="500px" />
+                </div>
               </div>
             )}
 
