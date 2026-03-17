@@ -30,15 +30,22 @@ export default function ProfilePage() {
     if (!confirm('ACHTUNG: Dein Account wird unwiderruflich gelöscht. Alle Daten gehen verloren. Fortfahren?')) return;
     
     setLoading(true);
+    setMessage('');
     try {
-      const res = await fetch('/api/user/delete', { method: 'DELETE' });
+      const res = await fetch('/api/user/delete', { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+      
       if (res.ok) {
         await signOut({ callbackUrl: '/' });
       } else {
-        setMessage('Fehler beim Löschen des Accounts');
+        setMessage(`Fehler: ${data.error || res.statusText} (${res.status})`);
       }
-    } catch (err) {
-      setMessage('Ein Fehler ist aufgetreten');
+    } catch (err: any) {
+      setMessage(`Netzwerkfehler: ${err.message}`);
     }
     setLoading(false);
   };
@@ -59,7 +66,11 @@ export default function ProfilePage() {
       </div>
       
       {message && (
-        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg">
+        <div className={`mb-4 p-3 rounded-lg ${
+          message.startsWith('Fehler:') || message.startsWith('Netzwerkfehler:')
+            ? 'bg-red-50 text-red-700'
+            : 'bg-blue-50 text-blue-700'
+        }`}>
           {message}
         </div>
       )}
