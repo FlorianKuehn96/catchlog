@@ -1,7 +1,23 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { getRedis, keys } from '@/lib/redis';
-import type { User } from '@/types';
+import type { User, Spot } from '@/types';
+
+// Vorausgefüllte deutsche Gewässer
+const DEFAULT_SPOTS: Omit<Spot, 'id' | 'userId' | 'createdAt'>[] = [
+  { name: 'Bodensee', lat: 47.6365, lng: 9.3965, type: 'lake' },
+  { name: 'Chiemsee', lat: 47.8689, lng: 12.4784, type: 'lake' },
+  { name: 'Starnberger See', lat: 47.8926, lng: 11.3044, type: 'lake' },
+  { name: 'Ammersee', lat: 48.0047, lng: 11.1156, type: 'lake' },
+  { name: 'Wannsee', lat: 52.4411, lng: 13.1431, type: 'lake' },
+  { name: 'Müggelsee', lat: 52.4333, lng: 13.6333, type: 'lake' },
+  { name: 'Rhein', lat: 50.9375, lng: 6.9603, type: 'river' },
+  { name: 'Donau', lat: 48.3665, lng: 10.8925, type: 'river' },
+  { name: 'Elbe', lat: 53.5511, lng: 9.9937, type: 'river' },
+  { name: 'Mosel', lat: 49.7496, lng: 6.6371, type: 'river' },
+  { name: 'Main', lat: 50.0826, lng: 8.2406, type: 'river' },
+  { name: 'Neckar', lat: 49.4875, lng: 8.4660, type: 'river' },
+];
 
 const handler = NextAuth({
   providers: [
@@ -30,6 +46,21 @@ const handler = NextAuth({
         };
         
         await redis.set(keys.user(user.email), newUser);
+        
+        // Create default spots for new user
+        const spotIds: string[] = [];
+        for (const spotData of DEFAULT_SPOTS) {
+          const spotId = crypto.randomUUID();
+          const spot: Spot = {
+            ...spotData,
+            id: spotId,
+            userId: newUser.id,
+            createdAt: new Date().toISOString(),
+          };
+          await redis.set(keys.spot(spotId), spot);
+          spotIds.push(spotId);
+        }
+        await redis.set(keys.spotsByUser(newUser.id), spotIds);
       }
       
       return true;
