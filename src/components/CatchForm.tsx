@@ -112,6 +112,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotLat, setNewSpotLat] = useState<number | null>(null);
   const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
+  
+  // Verhindert erneute Berechnung nach manueller Eingabe
+  const [hasCalculatedWeight, setHasCalculatedWeight] = useState(false);
+  const [hasCalculatedLength, setHasCalculatedLength] = useState(false);
 
   // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
   useEffect(() => {
@@ -177,29 +181,37 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     );
   };
 
-  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur wenn Gewicht leer
+  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur beim ersten Mal
   useEffect(() => {
-    if (length && species && !isEditing && !weight) {
+    if (length && species && !isEditing && !weight && !hasCalculatedWeight) {
       const len = parseFloat(length);
       if (len > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedWeight = Math.pow(len, 3) / factor;
         setWeight(calculatedWeight.toFixed(2));
+        setHasCalculatedWeight(true);
       }
     }
-  }, [length, species, isEditing, weight]);
+  }, [length, species, isEditing, weight, hasCalculatedWeight]);
 
-  // Automatische Längenberechnung (Gewicht → Länge) - nur wenn Länge leer
+  // Automatische Längenberechnung (Gewicht → Länge) - nur beim ersten Mal
   useEffect(() => {
-    if (weight && species && !isEditing && !length) {
+    if (weight && species && !isEditing && !length && !hasCalculatedLength) {
       const w = parseFloat(weight);
       if (w > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedLength = Math.pow(w * factor, 1/3);
         setLength(calculatedLength.toFixed(0));
+        setHasCalculatedLength(true);
       }
     }
-  }, [weight, species, isEditing, length]);
+  }, [weight, species, isEditing, length, hasCalculatedLength]);
+
+  // Reset calculation flags when species changes
+  useEffect(() => {
+    setHasCalculatedWeight(false);
+    setHasCalculatedLength(false);
+  }, [species]);
 
   const handleNewSpot = async (e: React.FormEvent) => {
     e.preventDefault();
