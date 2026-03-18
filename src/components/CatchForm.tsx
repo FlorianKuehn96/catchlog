@@ -113,11 +113,12 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   
-  // Optionale Fang-Koordinaten
-  const [useCatchCoordinates, setUseCatchCoordinates] = useState(false);
+  // Optionale Fang-Koordinaten - default: aktiv mit aktueller Position
+  const [useCatchCoordinates, setUseCatchCoordinates] = useState(true);
   const [catchLat, setCatchLat] = useState<number | null>(null);
   const [catchLng, setCatchLng] = useState<number | null>(null);
   const [showCatchMapPicker, setShowCatchMapPicker] = useState(false);
+  const [catchGpsLoading, setCatchGpsLoading] = useState(false);
   
   // Verhindert erneute Berechnung nach manueller Eingabe
   const [hasCalculatedWeight, setHasCalculatedWeight] = useState(false);
@@ -135,6 +136,39 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
       }
     }
   }, [catches, isEditing, selectedSpot]);
+
+  // GPS-Position für Fang-Koordinaten beim Öffnen holen (wenn nicht im Bearbeitungsmodus)
+  useEffect(() => {
+    if (isEditing || !useCatchCoordinates) return;
+    
+    if (!navigator.geolocation) {
+      console.log('Geolocation nicht verfügbar');
+      return;
+    }
+    
+    setCatchGpsLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCatchLat(position.coords.latitude);
+        setCatchLng(position.coords.longitude);
+        setCatchGpsLoading(false);
+      },
+      (err) => {
+        console.log('GPS Fehler:', err.message);
+        // Fallback: Gewässer-Koordinaten wenn GPS fehlschlägt
+        if (selectedSpot) {
+          const spot = spots.find(s => s.id === selectedSpot);
+          if (spot) {
+            setCatchLat(spot.lat);
+            setCatchLng(spot.lng);
+          }
+        }
+        setCatchGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []); // Nur beim Mounten
 
   // GPS-basierte Gewässer-Erkennung
   const detectNearestSpot = () => {
@@ -432,15 +466,27 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
                   if (!e.target.checked) {
                     setCatchLat(null);
                     setCatchLng(null);
+                  } else if (!catchLat || !catchLng) {
+                    // Re-aktivieren: aktuelle GPS-Position holen
+                    const spot = spots.find(s => s.id === selectedSpot);
+                    if (spot) {
+                      setCatchLat(spot.lat);
+                      setCatchLng(spot.lng);
+                    }
                   }
                 }}
                 className="w-4 h-4 text-blue-600 rounded"
               />
               <label htmlFor="useCatchCoordinates" className="text-sm font-medium text-gray-700 cursor-pointer">
-                📍 Exakte Fangposition festlegen
+                📍 Aktuelle Position als Fangort
               </label>
             </div>
-            {useCatchCoordinates && catchLat && catchLng && (
+            {catchGpsLoading && (
+              <span className="text-xs text-blue-600 animate-pulse">
+                ⏳ GPS wird ermittelt...
+              </span>
+            )}
+            {useCatchCoordinates && catchLat && catchLng && !catchGpsLoading && (
               <span className="text-xs text-green-600">
                 ✓ {catchLat.toFixed(5)}, {catchLng.toFixed(5)}
               </span>
@@ -450,23 +496,18 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           {useCatchCoordinates && (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
-                Klicke auf die Karte, um die genaue Position des Fangs zu markieren.
+                {catchLat && catchLng 
+                  ? 'Position automatisch per GPS ermittelt. Klicke auf die Karte für Korrekturen.'
+                  : 'Klicke auf die Karte, um die Position manuell zu setzen.'}
               </p>
               
               {!showCatchMapPicker ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    const spot = spots.find(s => s.id === selectedSpot);
-                    if (spot) {
-                      setCatchLat(spot.lat);
-                      setCatchLng(spot.lng);
-                    }
-                    setShowCatchMapPicker(true);
-                  }}
+                  onClick={() => setShowCatchMapPicker(true)}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
                 >
-                  🗺️ Position auf Karte wählen
+                  🗺️ Position auf Karte anpassen
                 </button>
               ) : (
                 <div className="space-y-2">
