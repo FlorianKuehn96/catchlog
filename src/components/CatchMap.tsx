@@ -240,10 +240,11 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
       {isMapReady && (
         <button
           onClick={getUserLocation}
-          className="absolute top-4 right-4 z-[400] bg-white p-2 rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+          className="absolute top-3 right-3 z-[1000] bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 active:scale-95 transition-all border border-gray-200"
           title="Meinen Standort anzeigen"
+          style={{ position: 'absolute' }}
         >
-          <span className="text-xl">📍</span>
+          <span className="text-2xl">📍</span>
         </button>
       )}
       
