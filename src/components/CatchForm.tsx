@@ -116,10 +116,6 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   // Verhindert erneute Berechnung nach manueller Eingabe
   const [hasCalculatedWeight, setHasCalculatedWeight] = useState(false);
   const [hasCalculatedLength, setHasCalculatedLength] = useState(false);
-  
-  // Debounce für Berechnung (erst nach 800ms Inaktivität)
-  const [lengthDebounce, setLengthDebounce] = useState<string>('');
-  const [weightDebounce, setWeightDebounce] = useState<string>('');
 
   // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
   useEffect(() => {
@@ -185,26 +181,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     );
   };
 
-  // Debounce für Länge
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLengthDebounce(length);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [length]);
-
-  // Debounce für Gewicht
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setWeightDebounce(weight);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [weight]);
-
-  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur beim ersten Mal nach Debounce
-  useEffect(() => {
-    if (lengthDebounce && species && !isEditing && !weight && !hasCalculatedWeight) {
-      const len = parseFloat(lengthDebounce);
+  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur beim ersten Mal bei onBlur
+  const calculateWeightFromLength = () => {
+    if (length && species && !isEditing && !weight && !hasCalculatedWeight) {
+      const len = parseFloat(length);
       if (len > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedWeight = Math.pow(len, 3) / factor;
@@ -212,12 +192,12 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         setHasCalculatedWeight(true);
       }
     }
-  }, [lengthDebounce, species, isEditing, weight, hasCalculatedWeight]);
+  };
 
-  // Automatische Längenberechnung (Gewicht → Länge) - nur beim ersten Mal nach Debounce
-  useEffect(() => {
-    if (weightDebounce && species && !isEditing && !length && !hasCalculatedLength) {
-      const w = parseFloat(weightDebounce);
+  // Automatische Längenberechnung (Gewicht → Länge) - nur beim ersten Mal bei onBlur
+  const calculateLengthFromWeight = () => {
+    if (weight && species && !isEditing && !length && !hasCalculatedLength) {
+      const w = parseFloat(weight);
       if (w > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedLength = Math.pow(w * factor, 1/3);
@@ -225,7 +205,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         setHasCalculatedLength(true);
       }
     }
-  }, [weightDebounce, species, isEditing, length, hasCalculatedLength]);
+  };
 
   // Reset calculation flags when species changes
   useEffect(() => {
@@ -555,6 +535,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             step="0.1"
             value={length}
             onChange={(e) => setLength(e.target.value)}
+            onBlur={calculateWeightFromLength}
             placeholder="60"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
@@ -578,6 +559,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             step="0.01"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
+            onBlur={calculateLengthFromWeight}
             placeholder="2.5"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
