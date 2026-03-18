@@ -16,59 +16,59 @@ interface CatchFormProps {
 // Standard-Formel für deutsche Süßwasserfische
 const WEIGHT_FACTORS: Record<string, number> = {
   // Raubfische
-  'Hecht': 3.50,
-  'Zander': 3.00,
-  'Barsch': 2.70,
-  'Flussbarsch': 2.70,
-  'Döbel': 3.20,
-  'Rapfen': 3.10,
-  'Wels': 4.00,
-  'Waller': 4.00,
-  'Silberwels': 4.00,
-  'Ziege': 3.30,
+  'Hecht': 83333,
+  'Zander': 64000,
+  'Barsch': 45000,
+  'Flussbarsch': 45000,
+  'Döbel': 55000,
+  'Rapfen': 52000,
+  'Wels': 120000,
+  'Waller': 120000,
+  'Silberwels': 120000,
+  'Ziege': 60000,
   // Karpfenarten
-  'Karpfen': 3.20,
-  'Spiegelkarpfen': 3.20,
-  'Schuppenkarpfen': 3.20,
-  'Graskarpfen': 3.50,
-  'Silberkarpfen': 3.20,
+  'Karpfen': 35000,
+  'Spiegelkarpfen': 35000,
+  'Schuppenkarpfen': 35000,
+  'Graskarpfen': 40000,
+  'Silberkarpfen': 35000,
   // Friedfische
-  'Schleie': 3.10,
-  'Giebel': 3.00,
-  'Brachse': 2.80,
-  'Brasse': 2.80,
-  'Rotauge': 2.50,
-  'Rotfeder': 2.50,
-  'Alver': 2.90,
-  'Ukelei': 2.90,
-  'Laube': 2.90,
-  'Gustergarn': 2.90,
+  'Schleie': 28000,
+  'Giebel': 25000,
+  'Brachse': 22000,
+  'Brasse': 22000,
+  'Rotauge': 18000,
+  'Rotfeder': 18000,
+  'Alver': 20000,
+  'Ukelei': 20000,
+  'Laube': 20000,
+  'Gustergarn': 20000,
   // Salmoniden
-  'Regenbogenforelle': 2.80,
-  'Bachforelle': 2.80,
-  'Seeforelle': 2.90,
-  'Huchen': 3.20,
-  'Äsche': 2.70,
-  'Seesaibling': 2.80,
-  'Bachsaibling': 2.80,
-  'Kernling': 2.80,
-  'Strömer': 2.80,
+  'Regenbogenforelle': 25000,
+  'Bachforelle': 25000,
+  'Seeforelle': 28000,
+  'Huchen': 80000,
+  'Äsche': 20000,
+  'Seesaibling': 24000,
+  'Bachsaibling': 24000,
+  'Kernling': 24000,
+  'Strömer': 24000,
   // Sonstige
-  'Aal': 3.00,
-  'Flussaal': 3.00,
-  'Neunaugen': 3.50,
-  'Stör': 4.50,
-  'Sterlet': 4.50,
-  'Lachs': 3.00,
-  'Meerforelle': 2.90,
+  'Aal': 30000,
+  'Flussaal': 30000,
+  'Neunaugen': 50000,
+  'Stör': 150000,
+  'Sterlet': 150000,
+  'Lachs': 60000,
+  'Meerforelle': 28000,
   // Meeresfische
-  'Dorsch': 3.20,
-  'Seehecht': 3.30,
-  'Pollack': 3.20,
-  'Kohler': 3.20,
-  'Hering': 2.80,
-  'Makrele': 3.00,
-  'Sardine': 2.50,
+  'Dorsch': 40000,
+  'Seehecht': 45000,
+  'Pollack': 40000,
+  'Kohler': 40000,
+  'Hering': 15000,
+  'Makrele': 25000,
+  'Sardine': 12000,
 };
 
 const GERMAN_FISH_SPECIES = [
@@ -182,7 +182,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     if (length && species && !isEditing) {
       const len = parseFloat(length);
       if (len > 0) {
-        const factor = WEIGHT_FACTORS[species] || 3.0;
+        const factor = WEIGHT_FACTORS[species] || 30000;
         const calculatedWeight = Math.pow(len, 3) / factor;
         const currentWeight = parseFloat(weight);
         if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.5) {
@@ -287,7 +287,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     if (length && species) {
       const len = parseFloat(length);
       if (len > 0) {
-        const factor = WEIGHT_FACTORS[species] || 3.0;
+        const factor = WEIGHT_FACTORS[species] || 30000;
         return (Math.pow(len, 3) / factor).toFixed(2);
       }
     }
