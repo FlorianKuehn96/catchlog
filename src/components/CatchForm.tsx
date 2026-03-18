@@ -13,62 +13,62 @@ interface CatchFormProps {
 }
 
 // Faktoren für Gewichtsberechnung: Gewicht(kg) = (Länge(cm)³) / Faktor
-// Standard-Formel für deutsche Süßwasserfische
+// Standard-Formel für deutsche Süßwasserfische (angepasst für realistische Werte)
 const WEIGHT_FACTORS: Record<string, number> = {
   // Raubfische
-  'Hecht': 83333,
-  'Zander': 64000,
-  'Barsch': 45000,
-  'Flussbarsch': 45000,
-  'Döbel': 55000,
-  'Rapfen': 52000,
-  'Wels': 120000,
-  'Waller': 120000,
-  'Silberwels': 120000,
-  'Ziege': 60000,
+  'Hecht': 350000,
+  'Zander': 250000,
+  'Barsch': 120000,
+  'Flussbarsch': 120000,
+  'Döbel': 150000,
+  'Rapfen': 140000,
+  'Wels': 400000,
+  'Waller': 400000,
+  'Silberwels': 400000,
+  'Ziege': 200000,
   // Karpfenarten
-  'Karpfen': 35000,
-  'Spiegelkarpfen': 35000,
-  'Schuppenkarpfen': 35000,
-  'Graskarpfen': 40000,
-  'Silberkarpfen': 35000,
+  'Karpfen': 100000,
+  'Spiegelkarpfen': 100000,
+  'Schuppenkarpfen': 100000,
+  'Graskarpfen': 120000,
+  'Silberkarpfen': 100000,
   // Friedfische
-  'Schleie': 28000,
-  'Giebel': 25000,
-  'Brachse': 22000,
-  'Brasse': 22000,
-  'Rotauge': 18000,
-  'Rotfeder': 18000,
-  'Alver': 20000,
-  'Ukelei': 20000,
-  'Laube': 20000,
-  'Gustergarn': 20000,
+  'Schleie': 80000,
+  'Giebel': 70000,
+  'Brachse': 60000,
+  'Brasse': 60000,
+  'Rotauge': 50000,
+  'Rotfeder': 50000,
+  'Alver': 55000,
+  'Ukelei': 55000,
+  'Laube': 55000,
+  'Gustergarn': 55000,
   // Salmoniden
-  'Regenbogenforelle': 25000,
-  'Bachforelle': 25000,
-  'Seeforelle': 28000,
-  'Huchen': 80000,
-  'Äsche': 20000,
-  'Seesaibling': 24000,
-  'Bachsaibling': 24000,
-  'Kernling': 24000,
-  'Strömer': 24000,
+  'Regenbogenforelle': 100000,
+  'Bachforelle': 105000,
+  'Seeforelle': 110000,
+  'Huchen': 280000,
+  'Äsche': 80000,
+  'Seesaibling': 95000,
+  'Bachsaibling': 95000,
+  'Kernling': 95000,
+  'Strömer': 95000,
   // Sonstige
-  'Aal': 30000,
-  'Flussaal': 30000,
-  'Neunaugen': 50000,
-  'Stör': 150000,
-  'Sterlet': 150000,
-  'Lachs': 60000,
-  'Meerforelle': 28000,
+  'Aal': 90000,
+  'Flussaal': 90000,
+  'Neunaugen': 200000,
+  'Stör': 500000,
+  'Sterlet': 500000,
+  'Lachs': 200000,
+  'Meerforelle': 110000,
   // Meeresfische
-  'Dorsch': 40000,
-  'Seehecht': 45000,
-  'Pollack': 40000,
-  'Kohler': 40000,
-  'Hering': 15000,
-  'Makrele': 25000,
-  'Sardine': 12000,
+  'Dorsch': 130000,
+  'Seehecht': 140000,
+  'Pollack': 130000,
+  'Kohler': 130000,
+  'Hering': 45000,
+  'Makrele': 90000,
+  'Sardine': 40000,
 };
 
 const GERMAN_FISH_SPECIES = [
@@ -177,20 +177,37 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     );
   };
 
-  // Automatische Gewichtsberechnung
+  // Automatische Gewichtsberechnung (Länge → Gewicht)
   useEffect(() => {
     if (length && species && !isEditing) {
       const len = parseFloat(length);
       if (len > 0) {
-        const factor = WEIGHT_FACTORS[species] || 30000;
+        const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedWeight = Math.pow(len, 3) / factor;
         const currentWeight = parseFloat(weight);
-        if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.5) {
+        // Nur aktualisieren wenn Gewicht leer oder sehr nah am berechneten Wert
+        if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.1) {
           setWeight(calculatedWeight.toFixed(2));
         }
       }
     }
-  }, [length, species, isEditing, weight]);
+  }, [length, species, isEditing]);
+
+  // Automatische Längenberechnung (Gewicht → Länge)
+  useEffect(() => {
+    if (weight && species && !isEditing) {
+      const w = parseFloat(weight);
+      if (w > 0) {
+        const factor = WEIGHT_FACTORS[species] || 100000;
+        const calculatedLength = Math.pow(w * factor, 1/3);
+        const currentLength = parseFloat(length);
+        // Nur aktualisieren wenn Länge leer oder sehr nah am berechneten Wert
+        if (!length || Math.abs(currentLength - calculatedLength) < 1) {
+          setLength(calculatedLength.toFixed(0));
+        }
+      }
+    }
+  }, [weight, species, isEditing]);
 
   const handleNewSpot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,8 +304,19 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     if (length && species) {
       const len = parseFloat(length);
       if (len > 0) {
-        const factor = WEIGHT_FACTORS[species] || 30000;
+        const factor = WEIGHT_FACTORS[species] || 100000;
         return (Math.pow(len, 3) / factor).toFixed(2);
+      }
+    }
+    return null;
+  };
+
+  const getCalculatedLength = () => {
+    if (weight && species) {
+      const w = parseFloat(weight);
+      if (w > 0) {
+        const factor = WEIGHT_FACTORS[species] || 100000;
+        return Math.pow(w * factor, 1/3).toFixed(0);
       }
     }
     return null;
@@ -492,6 +520,11 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Länge (cm)
+            {getCalculatedLength() && !isEditing && (
+              <span className="ml-2 text-xs text-blue-600 font-normal">
+                (ca. {getCalculatedLength()} cm)
+              </span>
+            )}
           </label>
           <input
             type="number"
