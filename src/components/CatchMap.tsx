@@ -1,17 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Catch } from '@/types';
+import type { Catch, Spot } from '@/types';
 
 // Dynamischer Import für Leaflet (Client-only)
 let L: any = null;
 
 interface CatchMapProps {
   catches: Catch[];
+  spots?: Spot[];
   height?: string;
 }
 
-export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
+export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -75,6 +76,46 @@ export function CatchMap({ catches, height = '400px' }: CatchMapProps) {
     // Alte Marker entfernen
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
+
+    // Gewässer als blaue Pins hinzufügen
+    const spotsWithCoords = spots.filter(
+      (s) => typeof s.lat === 'number' && typeof s.lng === 'number' && s.lat !== 0 && s.lng !== 0
+    );
+    
+    // Blaues Icon für Gewässer
+    const blueIcon = L.divIcon({
+      className: 'custom-spot-marker',
+      html: `<div style="
+        width: 24px;
+        height: 24px;
+        background: #3b82f6;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      ">💧</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+
+    spotsWithCoords.forEach((spot) => {
+      const { lat, lng, name, type } = spot;
+      if (lat == null || lng == null) return;
+
+      const marker = L.marker([lat, lng], { icon: blueIcon })
+        .addTo(leafletMap.current)
+        .bindPopup(`
+          <div class="p-2">
+            <h4 class="font-bold text-blue-600">${name}</h4>
+            <p class="text-sm text-gray-600">${type === 'river' ? 'Fluss' : type === 'lake' ? 'See' : 'Gewässer'}</p>
+          </div>
+        `);
+
+      markersRef.current.push(marker);
+    });
 
     // Catches mit gültigen Koordinaten filtern
     const catchesWithCoords = catches.filter(

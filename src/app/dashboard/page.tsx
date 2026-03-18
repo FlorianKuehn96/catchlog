@@ -362,7 +362,17 @@ export default function Dashboard() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     🗺️ Fang-Karte
                   </h3>
-                  <CatchMap catches={catches} height="500px" />
+                  <CatchMap catches={catches} spots={spots} height="500px" />
+                  <div className="mt-4 flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow"></div>
+                      <span className="text-gray-600">Gewässer</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow"></div>
+                      <span className="text-gray-600">Fänge</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
