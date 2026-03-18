@@ -16,8 +16,10 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const userMarkerRef = useRef<any>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [error, setError] = useState('');
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
   // Karte initialisieren (einmalig)
   useEffect(() => {
@@ -167,6 +169,54 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
     }
   }, [catches, spots, isMapReady]);
 
+  // Standort abrufen
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation wird nicht unterstützt');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        
+        if (leafletMap.current && L) {
+          // Alten User-Marker entfernen
+          if (userMarkerRef.current) {
+            userMarkerRef.current.remove();
+          }
+          
+          // Grünes Icon für eigenen Standort
+          const userIcon = L.divIcon({
+            className: 'user-location-marker',
+            html: `<div style="
+              width: 20px;
+              height: 20px;
+              background: #22c55e;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            "></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          });
+
+          userMarkerRef.current = L.marker([latitude, longitude], { icon: userIcon })
+            .addTo(leafletMap.current)
+            .bindPopup('<div class="p-2"><p class="font-semibold text-green-600">📍 Dein Standort</p></div>');
+
+          // Auf Standort zoomen
+          leafletMap.current.setView([latitude, longitude], 14);
+        }
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        setError('Standort konnte nicht ermittelt werden');
+      }
+    );
+  };
+
   if (error) {
     return (
       <div
@@ -185,6 +235,18 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
           <p className="text-gray-500">Karte wird geladen...</p>
         </div>
       )}
+      
+      {/* Standort-Button */}
+      {isMapReady && (
+        <button
+          onClick={getUserLocation}
+          className="absolute top-4 right-4 z-[400] bg-white p-2 rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+          title="Meinen Standort anzeigen"
+        >
+          <span className="text-xl">📍</span>
+        </button>
+      )}
+      
       <div ref={mapRef} className="w-full h-full" />
     </div>
   );
