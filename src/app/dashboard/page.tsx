@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CatchForm } from '@/components/CatchForm';
 import { Recommend } from '@/components/Recommend';
 import { CatchMap } from '@/components/CatchMap';
+import { SpotPickerMap } from '@/components/SpotPickerMap';
 import { Spot, Catch } from '@/types';
 
 export default function Dashboard() {
@@ -18,6 +19,9 @@ export default function Dashboard() {
   const [showAddSpot, setShowAddSpot] = useState(false);
   const [newSpotName, setNewSpotName] = useState('');
   const [newSpotType, setNewSpotType] = useState<Spot['type']>('lake');
+  const [newSpotLat, setNewSpotLat] = useState<number | ''>('');
+  const [newSpotLng, setNewSpotLng] = useState<number | ''>('');
+  const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   const [editingCatch, setEditingCatch] = useState<Catch | undefined>(undefined);
 
   const loadData = async () => {
@@ -66,6 +70,34 @@ export default function Dashboard() {
     e.preventDefault();
     if (!newSpotName) return;
 
+    // Wenn Koordinaten manuell gesetzt wurden, verwende diese
+    if (newSpotLat !== '' && newSpotLng !== '') {
+      try {
+        const res = await fetch('/api/spots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newSpotName,
+            lat: Number(newSpotLat),
+            lng: Number(newSpotLng),
+            type: newSpotType,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Fehler beim Speichern');
+
+        setNewSpotName('');
+        setNewSpotLat('');
+        setNewSpotLng('');
+        setShowAddSpot(false);
+        loadData();
+      } catch (err: any) {
+        setError(err.message);
+      }
+      return;
+    }
+
+    // Sonst GPS-Standort verwenden
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -83,6 +115,8 @@ export default function Dashboard() {
           if (!res.ok) throw new Error('Fehler beim Speichern');
 
           setNewSpotName('');
+          setNewSpotLat('');
+          setNewSpotLng('');
           setShowAddSpot(false);
           loadData();
         } catch (err: any) {
@@ -90,7 +124,7 @@ export default function Dashboard() {
         }
       },
       () => {
-        setError('Standort konnte nicht ermittelt werden');
+        setError('Standort konnte nicht ermittelt werden. Bitte wähle einen Standort auf der Karte.');
       }
     );
   };
@@ -331,6 +365,22 @@ export default function Dashboard() {
                         <option value="canal">Kanal</option>
                         <option value="sea">Meer</option>
                       </select>
+                      
+                      {/* Koordinaten-Anzeige */}
+                      {(newSpotLat !== '' || newSpotLng !== '') && (
+                        <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                          📍 {newSpotLat !== '' ? Number(newSpotLat).toFixed(5) : '?'}, {newSpotLng !== '' ? Number(newSpotLng).toFixed(5) : '?'}
+                        </div>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={() => setShowSpotMapPicker(true)}
+                        className="w-full py-2 px-4 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                      >
+                        {newSpotLat !== '' ? '📍 Standort ändern' : '🗺️ Standort auf Karte wählen'}
+                      </button>
+                      
                       <div className="flex gap-2">
                         <button
                           type="submit"
@@ -340,7 +390,11 @@ export default function Dashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setShowAddSpot(false)}
+                          onClick={() => {
+                            setShowAddSpot(false);
+                            setNewSpotLat('');
+                            setNewSpotLng('');
+                          }}
                           className="flex-1 py-2 bg-gray-200 rounded-md"
                         >
                           Abbrechen
@@ -373,6 +427,36 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Karten-Picker für Gewässer */}
+            {showSpotMapPicker && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                  <div className="p-4 border-b flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Standort wählen</h3>
+                    <button
+                      onClick={() => setShowSpotMapPicker(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Klicke auf die Karte, um den Standort zu wählen
+                    </p>
+                    <SpotPickerMap
+                      onLocationSelect={(lat, lng) => {
+                        setNewSpotLat(lat);
+                        setNewSpotLng(lng);
+                        setShowSpotMapPicker(false);
+                      }}
+                      height="400px"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
