@@ -155,14 +155,17 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
 
     console.log('CatchMap: created', markersRef.current.length, 'markers');
 
-    // Karte auf Marker zoomen
-    if (catchesWithCoords.length > 1) {
+    // Karte auf alle Marker zoomen (Spots + Catches)
+    if (spotsWithCoords.length > 0 || catchesWithCoords.length > 0) {
+      if (spotsWithCoords.length > 0) {
+        spotsWithCoords.forEach((s) => bounds.extend([s.lat, s.lng]));
+      }
+      if (catchesWithCoords.length > 0) {
+        catchesWithCoords.forEach((c) => bounds.extend([c.lat, c.lng]));
+      }
       leafletMap.current.fitBounds(bounds, { padding: [50, 50] });
-    } else if (catchesWithCoords.length === 1) {
-      const { lat, lng } = catchesWithCoords[0];
-      leafletMap.current.setView([lat, lng], 13);
     }
-  }, [catches, isMapReady]);
+  }, [catches, spots, isMapReady]);
 
   if (error) {
     return (

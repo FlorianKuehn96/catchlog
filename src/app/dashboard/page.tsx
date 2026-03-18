@@ -107,6 +107,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteSpot = async (id: string) => {
+    if (!confirm('Gewässer wirklich löschen?')) return;
+    
+    try {
+      const res = await fetch(`/api/spots?id=${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+      if (!res.ok) throw new Error(data.error || `Fehler: ${res.status}`);
+      loadData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   const handleEditCatch = (c: Catch) => {
     setEditingCatch(c);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -350,6 +363,13 @@ export default function Dashboard() {
                           {' '}• {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}
                         </p>
                       </div>
+                      <button
+                        onClick={() => handleDeleteSpot(spot.id)}
+                        className="text-red-600 hover:text-red-800 text-sm px-2 py-1 hover:bg-red-50 rounded"
+                        title="Gewässer löschen"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 ))}
