@@ -112,9 +112,6 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotLat, setNewSpotLat] = useState<number | null>(null);
   const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
-  
-  // Track which field was last edited to avoid loops
-  const [lastEdited, setLastEdited] = useState<'length' | 'weight' | null>(null);
 
   // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
   useEffect(() => {
@@ -180,9 +177,9 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     );
   };
 
-  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur wenn Länge zuletzt editiert
+  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur wenn Gewicht leer
   useEffect(() => {
-    if (length && species && !isEditing && lastEdited === 'length') {
+    if (length && species && !isEditing && !weight) {
       const len = parseFloat(length);
       if (len > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
@@ -190,11 +187,11 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         setWeight(calculatedWeight.toFixed(2));
       }
     }
-  }, [length, species, isEditing, lastEdited]);
+  }, [length, species, isEditing, weight]);
 
-  // Automatische Längenberechnung (Gewicht → Länge) - nur wenn Gewicht zuletzt editiert
+  // Automatische Längenberechnung (Gewicht → Länge) - nur wenn Länge leer
   useEffect(() => {
-    if (weight && species && !isEditing && lastEdited === 'weight') {
+    if (weight && species && !isEditing && !length) {
       const w = parseFloat(weight);
       if (w > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
@@ -202,7 +199,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         setLength(calculatedLength.toFixed(0));
       }
     }
-  }, [weight, species, isEditing, lastEdited]);
+  }, [weight, species, isEditing, length]);
 
   const handleNewSpot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -525,10 +522,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="number"
             step="0.1"
             value={length}
-            onChange={(e) => {
-              setLength(e.target.value);
-              setLastEdited('length');
-            }}
+            onChange={(e) => setLength(e.target.value)}
             placeholder="60"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
@@ -536,12 +530,12 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Gewicht (kg)
-            {calculatedWeight && !isEditing && lastEdited === 'length' && (
+            {calculatedWeight && !isEditing && !weight && (
               <span className="ml-2 text-xs text-blue-600 font-normal">
                 (ca. {calculatedWeight} kg)
               </span>
             )}
-            {getCalculatedLength() && !isEditing && lastEdited === 'weight' && (
+            {getCalculatedLength() && !isEditing && !length && (
               <span className="ml-2 text-xs text-blue-600 font-normal">
                 (ca. {getCalculatedLength()} cm)
               </span>
@@ -551,10 +545,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="number"
             step="0.01"
             value={weight}
-            onChange={(e) => {
-              setWeight(e.target.value);
-              setLastEdited('weight');
-            }}
+            onChange={(e) => setWeight(e.target.value)}
             placeholder="2.5"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
