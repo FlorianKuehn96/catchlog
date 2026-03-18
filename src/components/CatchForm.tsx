@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Spot, Catch } from '@/types';
+import { SpotPickerMap } from '@/components/SpotPickerMap';
 
 interface CatchFormProps {
   spots: Spot[];
@@ -108,6 +109,9 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotName, setNewSpotName] = useState('');
   const [newSpotType, setNewSpotType] = useState<Spot['type']>('lake');
   const [newSpotLoading, setNewSpotLoading] = useState(false);
+  const [newSpotLat, setNewSpotLat] = useState<number | null>(null);
+  const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
+  const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
 
   // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
   useEffect(() => {
@@ -381,6 +385,21 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             <p className="text-xs text-gray-600">
               📍 Aktueller Standort wird automatisch gespeichert
             </p>
+            
+            {/* Koordinaten-Anzeige */}
+            {(newSpotLat !== null && newSpotLng !== null) && (
+              <p className="text-sm text-gray-700 bg-gray-100 p-2 rounded">
+                📍 {newSpotLat.toFixed(5)}, {newSpotLng.toFixed(5)}
+              </p>
+            )}
+            
+            <button
+              type="button"
+              onClick={() => setShowSpotMapPicker(true)}
+              className="w-full py-2 px-4 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+            >
+              {(newSpotLat !== null) ? '📍 Standort ändern' : '🗺️ Standort auf Karte wählen'}
+            </button>
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -398,6 +417,36 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Karten-Picker für Gewässer */}
+      {showSpotMapPicker && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Standort wählen</h3>
+              <button
+                onClick={() => setShowSpotMapPicker(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-600 mb-2">
+                Klicke auf die Karte, um den Standort zu wählen
+              </p>
+              <SpotPickerMap
+                onLocationSelect={(lat, lng) => {
+                  setNewSpotLat(lat);
+                  setNewSpotLng(lng);
+                  setShowSpotMapPicker(false);
+                }}
+                height="400px"
+              />
+            </div>
+          </div>
         </div>
       )}
 
