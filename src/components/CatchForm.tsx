@@ -13,62 +13,62 @@ interface CatchFormProps {
 }
 
 // Faktoren für Gewichtsberechnung: Gewicht(kg) = (Länge(cm)³) / Faktor
-// Standard-Formel für deutsche Süßwasserfische (angepasst für realistische Werte)
+// Basierend auf realistischen Durchschnittswerten für deutsche Fische
 const WEIGHT_FACTORS: Record<string, number> = {
-  // Raubfische
-  'Hecht': 350000,
-  'Zander': 250000,
-  'Barsch': 120000,
-  'Flussbarsch': 120000,
-  'Döbel': 150000,
-  'Rapfen': 140000,
-  'Wels': 400000,
-  'Waller': 400000,
-  'Silberwels': 400000,
-  'Ziege': 200000,
+  // Raubfische (durchschnittlich schwerer)
+  'Hecht': 73500,        // 50cm ≈ 1.7kg
+  'Zander': 96000,       // 50cm ≈ 1.3kg
+  'Barsch': 67500,       // 30cm ≈ 0.4kg
+  'Flussbarsch': 67500,
+  'Döbel': 78000,
+  'Rapfen': 80000,
+  'Wels': 125000,        // 50cm ≈ 1.0kg (Welse werden sehr lang und schwer)
+  'Waller': 125000,
+  'Silberwels': 125000,
+  'Ziege': 85000,
   // Karpfenarten
-  'Karpfen': 100000,
-  'Spiegelkarpfen': 100000,
-  'Schuppenkarpfen': 100000,
-  'Graskarpfen': 120000,
-  'Silberkarpfen': 100000,
+  'Karpfen': 65000,      // 50cm ≈ 1.9kg
+  'Spiegelkarpfen': 65000,
+  'Schuppenkarpfen': 65000,
+  'Graskarpfen': 75000,
+  'Silberkarpfen': 65000,
   // Friedfische
-  'Schleie': 80000,
-  'Giebel': 70000,
-  'Brachse': 60000,
-  'Brasse': 60000,
-  'Rotauge': 50000,
-  'Rotfeder': 50000,
-  'Alver': 55000,
-  'Ukelei': 55000,
-  'Laube': 55000,
-  'Gustergarn': 55000,
+  'Schleie': 48000,
+  'Giebel': 42000,
+  'Brachse': 35000,      // 30cm ≈ 0.77kg
+  'Brasse': 35000,
+  'Rotauge': 28000,
+  'Rotfeder': 28000,
+  'Alver': 32000,
+  'Ukelei': 32000,
+  'Laube': 32000,
+  'Gustergarn': 32000,
   // Salmoniden
-  'Regenbogenforelle': 100000,
-  'Bachforelle': 105000,
-  'Seeforelle': 110000,
-  'Huchen': 280000,
-  'Äsche': 80000,
-  'Seesaibling': 95000,
-  'Bachsaibling': 95000,
-  'Kernling': 95000,
-  'Strömer': 95000,
+  'Regenbogenforelle': 115000, // 50cm ≈ 1.1kg
+  'Bachforelle': 110000,
+  'Seeforelle': 120000,
+  'Huchen': 90000,
+  'Äsche': 70000,
+  'Seesaibling': 100000,
+  'Bachsaibling': 100000,
+  'Kernling': 100000,
+  'Strömer': 100000,
   // Sonstige
-  'Aal': 90000,
-  'Flussaal': 90000,
-  'Neunaugen': 200000,
-  'Stör': 500000,
-  'Sterlet': 500000,
-  'Lachs': 200000,
-  'Meerforelle': 110000,
+  'Aal': 85000,
+  'Flussaal': 85000,
+  'Neunaugen': 60000,
+  'Stör': 200000,
+  'Sterlet': 200000,
+  'Lachs': 95000,
+  'Meerforelle': 120000,
   // Meeresfische
-  'Dorsch': 130000,
-  'Seehecht': 140000,
-  'Pollack': 130000,
-  'Kohler': 130000,
-  'Hering': 45000,
-  'Makrele': 90000,
-  'Sardine': 40000,
+  'Dorsch': 85000,
+  'Seehecht': 90000,
+  'Pollack': 85000,
+  'Kohler': 85000,
+  'Hering': 40000,
+  'Makrele': 75000,
+  'Sardine': 35000,
 };
 
 const GERMAN_FISH_SPECIES = [
@@ -112,6 +112,9 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotLat, setNewSpotLat] = useState<number | null>(null);
   const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
+  
+  // Track which field was last edited to avoid loops
+  const [lastEdited, setLastEdited] = useState<'length' | 'weight' | null>(null);
 
   // Letztes Gewässer vorausfüllen (nur bei neuen Fängen)
   useEffect(() => {
@@ -177,37 +180,29 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     );
   };
 
-  // Automatische Gewichtsberechnung (Länge → Gewicht)
+  // Automatische Gewichtsberechnung (Länge → Gewicht) - nur wenn Länge zuletzt editiert
   useEffect(() => {
-    if (length && species && !isEditing) {
+    if (length && species && !isEditing && lastEdited === 'length') {
       const len = parseFloat(length);
       if (len > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedWeight = Math.pow(len, 3) / factor;
-        const currentWeight = parseFloat(weight);
-        // Nur aktualisieren wenn Gewicht leer oder sehr nah am berechneten Wert
-        if (!weight || Math.abs(currentWeight - calculatedWeight) < 0.1) {
-          setWeight(calculatedWeight.toFixed(2));
-        }
+        setWeight(calculatedWeight.toFixed(2));
       }
     }
-  }, [length, species, isEditing]);
+  }, [length, species, isEditing, lastEdited]);
 
-  // Automatische Längenberechnung (Gewicht → Länge)
+  // Automatische Längenberechnung (Gewicht → Länge) - nur wenn Gewicht zuletzt editiert
   useEffect(() => {
-    if (weight && species && !isEditing) {
+    if (weight && species && !isEditing && lastEdited === 'weight') {
       const w = parseFloat(weight);
       if (w > 0) {
         const factor = WEIGHT_FACTORS[species] || 100000;
         const calculatedLength = Math.pow(w * factor, 1/3);
-        const currentLength = parseFloat(length);
-        // Nur aktualisieren wenn Länge leer oder sehr nah am berechneten Wert
-        if (!length || Math.abs(currentLength - calculatedLength) < 1) {
-          setLength(calculatedLength.toFixed(0));
-        }
+        setLength(calculatedLength.toFixed(0));
       }
     }
-  }, [weight, species, isEditing]);
+  }, [weight, species, isEditing, lastEdited]);
 
   const handleNewSpot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -530,7 +525,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="number"
             step="0.1"
             value={length}
-            onChange={(e) => setLength(e.target.value)}
+            onChange={(e) => {
+              setLength(e.target.value);
+              setLastEdited('length');
+            }}
             placeholder="60"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
@@ -538,9 +536,14 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Gewicht (kg)
-            {calculatedWeight && !isEditing && (
+            {calculatedWeight && !isEditing && lastEdited === 'length' && (
               <span className="ml-2 text-xs text-blue-600 font-normal">
                 (ca. {calculatedWeight} kg)
+              </span>
+            )}
+            {getCalculatedLength() && !isEditing && lastEdited === 'weight' && (
+              <span className="ml-2 text-xs text-blue-600 font-normal">
+                (ca. {getCalculatedLength()} cm)
               </span>
             )}
           </label>
@@ -548,7 +551,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             type="number"
             step="0.01"
             value={weight}
-            onChange={(e) => setWeight(e.target.value)}
+            onChange={(e) => {
+              setWeight(e.target.value);
+              setLastEdited('weight');
+            }}
             placeholder="2.5"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
