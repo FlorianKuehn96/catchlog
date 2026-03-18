@@ -32,9 +32,18 @@ export default function Dashboard() {
           window.location.href = '/login';
           return;
         }
-        const spotsError = await spotsRes.json().catch(() => ({ error: 'Unbekannter Fehler' }));
-        const catchesError = await catchesRes.json().catch(() => ({ error: 'Unbekannter Fehler' }));
-        throw new Error(spotsError.error || catchesError.error || `Fehler: ${spotsRes.status}/${catchesRes.status}`);
+        // Try to get error details
+        let errorMsg = `Server-Fehler: spots=${spotsRes.status}, catches=${catchesRes.status}`;
+        try {
+          const spotsText = await spotsRes.text();
+          const catchesText = await catchesRes.text();
+          console.error('Spots error:', spotsText);
+          console.error('Catches error:', catchesText);
+          errorMsg = `Fehler beim Laden: ${spotsText.slice(0, 100)} / ${catchesText.slice(0, 100)}`;
+        } catch (e) {
+          console.error('Could not read error response:', e);
+        }
+        throw new Error(errorMsg);
       }
 
       const spotsData = await spotsRes.json();
