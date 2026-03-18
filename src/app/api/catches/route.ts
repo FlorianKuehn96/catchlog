@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const { spotId, species, length, weight, bait, technique, notes, timestamp } = body;
+    const { spotId, species, length, weight, bait, technique, notes, timestamp, catchLat, catchLng } = body;
     
     // Timestamp aus Body oder jetzt
     const catchTimestamp = timestamp || new Date().toISOString();
@@ -117,6 +117,10 @@ export async function POST(request: NextRequest) {
       spotId,
       lat: spot.lat,        // Kopie für Karte
       lng: spot.lng,        // Kopie für Karte
+      ...(catchLat !== undefined && catchLng !== undefined && {
+        catchLat,
+        catchLng,
+      }),
       species,
       length,
       weight,

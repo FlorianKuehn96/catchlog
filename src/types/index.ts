@@ -41,8 +41,10 @@ export interface Catch {
   userId: string;
   spotId: string;
   spot?: Spot;
-  lat: number;            // Kopie vom Spot für Karte
-  lng: number;            // Kopie vom Spot für Karte
+  lat: number;            // Kopie vom Spot für Karte (Fallback)
+  lng: number;            // Kopie vom Spot für Karte (Fallback)
+  catchLat?: number;      // Optionale genaue Fang-Koordinaten
+  catchLng?: number;      // Optionale genaue Fang-Koordinaten
   species: string;
   length?: number;
   weight?: number;

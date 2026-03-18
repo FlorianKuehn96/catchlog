@@ -113,6 +113,12 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [newSpotLng, setNewSpotLng] = useState<number | null>(null);
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   
+  // Optionale Fang-Koordinaten
+  const [useCatchCoordinates, setUseCatchCoordinates] = useState(false);
+  const [catchLat, setCatchLat] = useState<number | null>(null);
+  const [catchLng, setCatchLng] = useState<number | null>(null);
+  const [showCatchMapPicker, setShowCatchMapPicker] = useState(false);
+  
   // Verhindert erneute Berechnung nach manueller Eingabe
   const [hasCalculatedWeight, setHasCalculatedWeight] = useState(false);
   const [hasCalculatedLength, setHasCalculatedLength] = useState(false);
@@ -276,6 +282,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         technique,
         notes,
         timestamp,
+        ...(useCatchCoordinates && catchLat && catchLng && {
+          catchLat,
+          catchLng,
+        }),
       };
 
       const res = await fetch('/api/catches', {
@@ -407,6 +417,95 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           </p>
         )}
       </div>
+
+      {/* Fang-Koordinaten */}
+      {selectedSpot && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="useCatchCoordinates"
+                checked={useCatchCoordinates}
+                onChange={(e) => {
+                  setUseCatchCoordinates(e.target.checked);
+                  if (!e.target.checked) {
+                    setCatchLat(null);
+                    setCatchLng(null);
+                  }
+                }}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <label htmlFor="useCatchCoordinates" className="text-sm font-medium text-gray-700 cursor-pointer">
+                📍 Exakte Fangposition festlegen
+              </label>
+            </div>
+            {useCatchCoordinates && catchLat && catchLng && (
+              <span className="text-xs text-green-600">
+                ✓ {catchLat.toFixed(5)}, {catchLng.toFixed(5)}
+              </span>
+            )}
+          </div>
+          
+          {useCatchCoordinates && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Klicke auf die Karte, um die genaue Position des Fangs zu markieren.
+              </p>
+              
+              {!showCatchMapPicker ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const spot = spots.find(s => s.id === selectedSpot);
+                    if (spot) {
+                      setCatchLat(spot.lat);
+                      setCatchLng(spot.lng);
+                    }
+                    setShowCatchMapPicker(true);
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                >
+                  🗺️ Position auf Karte wählen
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="h-48 rounded-md overflow-hidden border border-gray-300">
+                    <SpotPickerMap
+                      lat={catchLat || spots.find(s => s.id === selectedSpot)?.lat || 51.1657}
+                      lng={catchLng || spots.find(s => s.id === selectedSpot)?.lng || 10.4515}
+                      onLocationSelect={(lat, lng) => {
+                        setCatchLat(lat);
+                        setCatchLng(lng);
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCatchMapPicker(false)}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    >
+                      ✓ Position übernehmen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCatchMapPicker(false);
+                        setCatchLat(null);
+                        setCatchLng(null);
+                      }}
+                      className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Neues Gewässer Modal */}
       {showNewSpot && (

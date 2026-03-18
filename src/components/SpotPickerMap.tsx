@@ -8,9 +8,11 @@ let L: any = null;
 interface SpotPickerMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
   height?: string;
+  lat?: number;
+  lng?: number;
 }
 
-export function SpotPickerMap({ onLocationSelect, height = '400px' }: SpotPickerMapProps) {
+export function SpotPickerMap({ onLocationSelect, height = '400px', lat: initialLat, lng: initialLng }: SpotPickerMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -37,12 +39,36 @@ export function SpotPickerMap({ onLocationSelect, height = '400px' }: SpotPicker
 
         if (!mapRef.current || leafletMap.current) return;
 
-        const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6);
+        // Initiale Koordinaten verwenden oder Default
+        const startLat = initialLat ?? 51.1657;
+        const startLng = initialLng ?? 10.4515;
+        const startZoom = initialLat && initialLng ? 15 : 6;
+        
+        const map = L.map(mapRef.current).setView([startLat, startLng], startZoom);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19,
         }).addTo(map);
+
+        // Initialen Marker setzen wenn Koordinaten vorhanden
+        if (initialLat && initialLng) {
+          const redIcon = L.divIcon({
+            className: 'spot-picker-marker',
+            html: `<div style="
+              width: 24px;
+              height: 24px;
+              background: #ef4444;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            "></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+          
+          markerRef.current = L.marker([initialLat, initialLng], { icon: redIcon }).addTo(map);
+        }
 
         // Klick-Handler für Standort-Auswahl
         map.on('click', (e: any) => {
@@ -91,7 +117,7 @@ export function SpotPickerMap({ onLocationSelect, height = '400px' }: SpotPicker
         leafletMap.current = null;
       }
     };
-  }, [onLocationSelect]);
+  }, [onLocationSelect, initialLat, initialLng]);
 
   if (error) {
     return (

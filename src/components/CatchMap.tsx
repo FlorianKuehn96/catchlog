@@ -119,9 +119,14 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
       markersRef.current.push(marker);
     });
 
-    // Catches mit gültigen Koordinaten filtern
+    // Catches mit gültigen Koordinaten filtern (bevorzuge Fang-Koordinaten)
     const catchesWithCoords = catches.filter(
-      (c) => typeof c.lat === 'number' && typeof c.lng === 'number' && c.lat !== 0 && c.lng !== 0
+      (c) => {
+        // Bevorzuge catchLat/catchLng, sonst fallback zu spot lat/lng
+        const lat = c.catchLat ?? c.lat;
+        const lng = c.catchLng ?? c.lng;
+        return typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0;
+      }
     );
     
     console.log('CatchMap: catches with valid coords:', catchesWithCoords.length);
@@ -135,7 +140,10 @@ export function CatchMap({ catches, spots = [], height = '400px' }: CatchMapProp
     const bounds = L.latLngBounds();
 
     catchesWithCoords.forEach((catchItem) => {
-      const { lat, lng, spot, species, length, weight, date, time } = catchItem;
+      // Bevorzuge Fang-Koordinaten, sonst Spot-Koordinaten
+      const lat = catchItem.catchLat ?? catchItem.lat;
+      const lng = catchItem.catchLng ?? catchItem.lng;
+      const { spot, species, length, weight, date, time } = catchItem;
       if (lat == null || lng == null) return;
 
       const marker = L.marker([lat, lng])
