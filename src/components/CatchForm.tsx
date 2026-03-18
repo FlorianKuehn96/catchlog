@@ -128,7 +128,12 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
 
   // GPS-basierte Gewässer-Erkennung
   const detectNearestSpot = () => {
-    if (spots.length === 0 || !navigator.geolocation) return;
+    if (spots.length === 0 || !navigator.geolocation) {
+      setError('Keine Gewässer vorhanden oder GPS nicht verfügbar');
+      return;
+    }
+    
+    setError('');
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -148,14 +153,27 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           }
         });
         
-        // Nur wenn innerhalb von ~500m (ca. 0.005 Grad)
-        if (nearestSpot && minDistance < 0.005) {
+        if (nearestSpot) {
+          // Entfernung in Metern berechnen (ca. 111km pro Grad)
+          const distanceMeters = Math.round(minDistance * 111000);
+          
           setSelectedSpot((nearestSpot as Spot).id);
+          
+          // Erfolgsmeldung anzeigen
+          if (distanceMeters < 1000) {
+            setError(`✅ ${(nearestSpot as Spot).name} ausgewählt (${distanceMeters}m entfernt)`);
+          } else {
+            setError(`✅ ${(nearestSpot as Spot).name} ausgewählt (${(distanceMeters / 1000).toFixed(1)}km entfernt)`);
+          }
+          
+          // Nach 3 Sekunden Erfolgsmeldung löschen
+          setTimeout(() => setError(''), 3000);
         }
       },
-      () => {
-        // GPS Fehler - ignorieren
-      }
+      (err) => {
+        setError('GPS-Standort konnte nicht ermittelt werden. Bitte erlaube den Zugriff auf deinen Standort.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
