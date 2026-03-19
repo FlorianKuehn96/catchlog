@@ -23,9 +23,8 @@ export async function GET(req: NextRequest) {
     const user = userData as any;
     const userId = user.id;
 
-    // Get all catches
-    const catchesData = await redis.get(keys.catchesByUser(userId));
-    const catchIds = Array.isArray(catchesData) ? catchesData : [];
+    // Get all catches (stored as list)
+    const catchIds = await redis.lrange(keys.catchesByUser(userId), 0, -1);
     
     const catches = [];
     for (const id of catchIds) {
@@ -33,9 +32,8 @@ export async function GET(req: NextRequest) {
       if (c) catches.push(c);
     }
 
-    // Get spots for reference
-    const spotsData = await redis.get(keys.spotsByUser(userId));
-    const spotIds = Array.isArray(spotsData) ? spotsData : [];
+    // Get spots for reference (stored as list)
+    const spotIds = await redis.lrange(keys.spotsByUser(userId), 0, -1);
     const spots: Record<string, any> = {};
     for (const id of spotIds) {
       const s = await redis.get(keys.spot(id));
