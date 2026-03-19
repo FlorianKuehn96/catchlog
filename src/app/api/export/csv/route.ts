@@ -32,8 +32,9 @@ export async function GET(req: NextRequest) {
       if (c) catches.push(c);
     }
 
-    // Get spots for reference (stored as list)
-    const spotIds = await redis.lrange(keys.spotsByUser(userId), 0, -1);
+    // Get spots for reference (stored as array via set)
+    const spotsData = await redis.get(keys.spotsByUser(userId));
+    const spotIds = Array.isArray(spotsData) ? spotsData : [];
     const spots: Record<string, any> = {};
     for (const id of spotIds) {
       const s = await redis.get(keys.spot(id));
