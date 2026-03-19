@@ -68,6 +68,35 @@ export default function Login() {
           <a href="#" className="text-blue-600 hover:underline">Nutzungsbedingungen</a> 
           zu.
         </p>
+
+        {/* Footer Links */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <a 
+              href="/privacy" 
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Datenschutz
+            </a>
+            <span className="text-gray-300">·</span>
+            <a 
+              href="/impressum" 
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Impressum
+            </a>
+            <span className="text-gray-300">·</span>
+            <a 
+              href="/cookies" 
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cookies
+            </a>
+          </div>
+          <p className="text-center text-xs text-gray-400 mt-3">
+            © 2026 CatchLog
+          </p>
+        </div>
       </div>
     </div>
   );

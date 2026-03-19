@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { CatchForm } from '@/components/CatchForm';
@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [newSpotLng, setNewSpotLng] = useState<number | ''>('');
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   const [editingCatch, setEditingCatch] = useState<Catch | undefined>(undefined);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   // Filter states
   const [filterSpecies, setFilterSpecies] = useState<string>('');
@@ -32,6 +34,17 @@ export default function Dashboard() {
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -240,24 +253,108 @@ export default function Dashboard() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">🎣 CatchLog</h1>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-2xl">👤</span>
-              <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                {session?.user?.name || 'Profil'}
-              </span>
-            </Link>
-            <button
-              onClick={() => {
-                window.location.href = '/';
-              }}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Ausloggen
-            </button>
+          <div className="flex items-center gap-2" ref={menuRef}>
+            {/* Dropdown Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-2xl">👤</span>
+                <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                  {session?.user?.name || 'Menu'}
+                </span>
+                <svg 
+                  className={`w-4 h-4 text-gray-500 transition-transform ${menuOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                  {/* Profile - highlighted */}
+                  <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">
+                      {session?.user?.image ? (
+                        <img 
+                          src={session.user.image} 
+                          alt="" 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        '👤'
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {session?.user?.name || 'Profil'}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {session?.user?.email || ''}
+                      </p>
+                    </div>
+                  </Link>
+
+                  {/* Legal */}
+                  <Link
+                    href="/privacy"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <span>🛡️</span>
+                    <span>Datenschutz</span>
+                  </Link>
+
+                  <Link
+                    href="/impressum"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <span>📋</span>
+                    <span>Impressum</span>
+                  </Link>
+
+                  <Link
+                    href="/cookies"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <span>🍪</span>
+                    <span>Cookies</span>
+                  </Link>
+
+                  {/* FAQ - placeholder */}
+                  <Link
+                    href="/faq"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                  >
+                    <span>❓</span>
+                    <span>FAQ</span>
+                  </Link>
+
+                  {/* Logout */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      window.location.href = '/';
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <span>🚪</span>
+                    <span>Ausloggen</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
