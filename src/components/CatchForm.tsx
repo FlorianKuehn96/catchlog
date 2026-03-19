@@ -337,11 +337,34 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
       }
 
       onSuccess();
+      
+      // Formular zurücksetzen (nur bei neuem Fang, nicht beim Bearbeiten)
+      if (!isEditing) {
+        resetForm();
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setSelectedSpot('');
+    setSpecies('');
+    setLength('');
+    setWeight('');
+    setBait('');
+    setTechnique('');
+    setNotes('');
+    setImageUrl('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setTime(new Date().toTimeString().slice(0, 5));
+    setCatchLat(null);
+    setCatchLng(null);
+    setHasCalculatedWeight(false);
+    setHasCalculatedLength(false);
+    setError('');
   };
 
   const commonBaits = [
