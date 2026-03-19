@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ImageUploadProps {
   currentImageUrl?: string;
@@ -13,6 +13,11 @@ export function ImageUpload({ currentImageUrl, onImageUpload, onImageRemove }: I
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync preview with external currentImageUrl (for reset)
+  useEffect(() => {
+    setPreview(currentImageUrl || null);
+  }, [currentImageUrl]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -314,16 +314,17 @@ export async function DELETE(request: NextRequest) {
           const crypto = await import('crypto');
           const signature = crypto.createHash('sha1').update(signatureString).digest('hex');
 
-          // Delete from Cloudinary
+          // Delete from Cloudinary (using form data, not JSON)
+          const formData = new URLSearchParams();
+          formData.append('public_id', publicId);
+          formData.append('api_key', apiKey);
+          formData.append('timestamp', timestamp.toString());
+          formData.append('signature', signature);
+
           const deleteRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              public_id: publicId,
-              api_key: apiKey,
-              timestamp,
-              signature,
-            }),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString(),
           });
 
           const deleteResult = await deleteRes.json();
