@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const { spotId, species, length, weight, bait, technique, notes, timestamp, catchLat, catchLng } = body;
+    const { spotId, species, length, weight, bait, technique, notes, timestamp, catchLat, catchLng, imageUrl } = body;
     
     // Timestamp aus Body oder jetzt
     const catchTimestamp = timestamp || new Date().toISOString();
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       time,
       sunPosition,
       notes,
+      ...(imageUrl && { photoUrl: imageUrl }),
     };
 
     // Save to Redis
