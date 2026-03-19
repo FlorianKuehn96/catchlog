@@ -7,6 +7,7 @@ import { CatchForm } from '@/components/CatchForm';
 import { Recommend } from '@/components/Recommend';
 import { CatchMap } from '@/components/CatchMap';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
+import { CatchCharts } from '@/components/CatchCharts';
 import { Spot, Catch } from '@/types';
 
 export default function Dashboard() {
@@ -15,7 +16,7 @@ export default function Dashboard() {
   const [catches, setCatches] = useState<Catch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'catches' | 'spots' | 'map' | 'recommend'>('catches');
+  const [activeTab, setActiveTab] = useState<'catches' | 'spots' | 'map' | 'recommend' | 'stats'>('catches');
   const [showAddSpot, setShowAddSpot] = useState(false);
   const [newSpotName, setNewSpotName] = useState('');
   const [newSpotType, setNewSpotType] = useState<Spot['type']>('lake');
@@ -295,6 +296,7 @@ export default function Dashboard() {
                 { key: 'catches', label: `Meine Fänge (${catches.length})` },
                 { key: 'spots', label: `Gewässer (${spots.length})` },
                 { key: 'map', label: '🗺️ Karte' },
+                { key: 'stats', label: '📊 Statistik' },
                 { key: 'recommend', label: '💡 Empfehlung' },
               ].map((tab) => (
                 <button
@@ -631,6 +633,10 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeTab === 'stats' && (
+              <CatchCharts catches={catches} spots={spots} />
             )}
 
             {activeTab === 'recommend' && (
