@@ -1,18 +1,68 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Edit states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editImage, setEditImage] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Initialize edit states when session loads
+  useEffect(() => {
+    if (session?.user) {
+      setEditName(session.user.name || '');
+      setEditImage((session.user as any).image || '');
+    }
+  }, [session]);
+
+  const handleSaveProfile = async () => {
+    setEditLoading(true);
+    setMessage('');
+    
+    try {
+      const res = await fetch('/api/user/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName.trim() || null,
+          image: editImage.trim() || null,
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        // Update local session
+        await updateSession();
+        setIsEditing(false);
+        setMessage('✓ Profil erfolgreich aktualisiert');
+      } else {
+        setMessage(`Fehler: ${data.error || 'Aktualisierung fehlgeschlagen'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Netzwerkfehler: ${err.message}`);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(session?.user?.name || '');
+    setEditImage((session?.user as any)?.image || '');
+    setIsEditing(false);
+  };
 
   const handleUpgrade = async () => {
     setLoading(true);
-    // TODO: Stripe Checkout Session erstellen
     setMessage('Upgrade wird vorbereitet... (Stripe Integration folgt)');
     setLoading(false);
   };
@@ -21,7 +71,6 @@ export default function ProfilePage() {
     if (!confirm('Möchtest du dein Abo wirklich kündigen?')) return;
     
     setLoading(true);
-    // TODO: Stripe Subscription canceln
     setMessage('Abo-Kündigung wird verarbeitet... (Stripe Integration folgt)');
     setLoading(false);
   };
@@ -51,6 +100,17 @@ export default function ProfilePage() {
   };
 
   const isPro = (session?.user as any)?.subscription === 'pro';
+  const userImage = (session?.user as any)?.image;
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -69,35 +129,146 @@ export default function ProfilePage() {
         <div className={`mb-4 p-3 rounded-lg ${
           message.startsWith('Fehler:') || message.startsWith('Netzwerkfehler:')
             ? 'bg-red-50 text-red-700'
-            : 'bg-blue-50 text-blue-700'
+            : 'bg-green-50 text-green-700'
         }`}>
           {message}
         </div>
       )}
 
-      {/* Account Info */}
+      {/* Profile Card */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Account-Informationen</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-500">Name</label>
-            <p className="font-medium">{session?.user?.name || '–'}</p>
-          </div>
-          <div>
-            <label className="text-sm text-gray-500">E-Mail</label>
-            <p className="font-medium">{session?.user?.email}</p>
-          </div>
-          <div>
-            <label className="text-sm text-gray-500">Aktueller Plan</label>
-            <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isPro ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-              }`}>
-                {isPro ? 'Pro' : 'Free'}
-              </span>
+        <div className="flex items-start justify-between mb-4">
+          <h2 className="text-lg font-semibold">Profil-Informationen</h2>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50"
+            >
+              ✏️ Bearbeiten
+            </button>
+          )}
+        </div>
+
+        {!isEditing ? (
+          // View Mode
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              {userImage ? (
+                <img
+                  src={userImage}
+                  alt="Profilbild"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                  {getInitials(session?.user?.name || '?')}
+                </div>
+              )}
+            </div>
+            
+            {/* Info */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <label className="text-sm text-gray-500">Anzeige-Name</label>
+                <p className="font-medium text-lg">{session?.user?.name || '–'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">E-Mail</label>
+                <p className="font-medium text-gray-700">{session?.user?.email}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Aktueller Plan</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    isPro ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {isPro ? 'Pro' : 'Free'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Edit Mode
+          <div className="space-y-4">
+            {/* Avatar Preview */}
+            <div className="flex items-center gap-4">
+              {editImage ? (
+                <img
+                  src={editImage}
+                  alt="Vorschau"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                  {getInitials(editName || '?')}
+                </div>
+              )}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Profilbild URL
+                </label>
+                <input
+                  type="url"
+                  value={editImage}
+                  onChange={(e) => setEditImage(e.target.value)}
+                  placeholder="https://example.com/bild.jpg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Bild-URL eingeben oder leer lassen für Initialen-Avatar
+                </p>
+              </div>
+            </div>
+
+            {/* Name Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Anzeige-Name
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Dein Name"
+                maxLength={50}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              />
+            </div>
+
+            {/* E-Mail (read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                E-Mail (nicht änderbar)
+              </label>
+              <input
+                type="email"
+                value={session?.user?.email || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleSaveProfile}
+                disabled={editLoading}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {editLoading ? 'Speichern...' : '💾 Speichern'}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                disabled={editLoading}
+                className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Subscription Management */}
