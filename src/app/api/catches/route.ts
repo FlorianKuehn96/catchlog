@@ -246,8 +246,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/catches?id=xxx - Delete catch
-// NOTE: Photo deletion disabled for MVP
+// DELETE /api/catches?id=xxx - Delete catch and photo from Cloudinary
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -276,6 +275,49 @@ export async function DELETE(request: NextRequest) {
   const c = catchData as Catch;
   if (c.userId !== user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  // Delete photo from Cloudinary if exists
+  if (c.photoUrl) {
+    try {
+      const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.CLOUDINARY_API_KEY;
+      const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+      if (cloudName && apiKey && apiSecret) {
+        // Extract public_id from photoUrl
+        // URL format: https://res.cloudinary.com/{cloud}/image/upload/.../folder/filename.jpg
+        const urlMatch = c.photoUrl.match(/\/([^\/]+)\/[^\/]+$/);
+        if (urlMatch) {
+          const publicId = urlMatch[1].replace(/\.[^/.]+$/, ''); // Remove extension
+          const fullPublicId = `catchlog/catches/${publicId}`;
+
+          // Generate signature for deletion
+          const timestamp = Math.floor(Date.now() / 1000);
+          const signatureString = `public_id=${fullPublicId}&timestamp=${timestamp}${apiSecret}`;
+          const signature = require('crypto').createHash('sha1').update(signatureString).digest('hex');
+
+          // Delete from Cloudinary
+          const deleteRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              public_id: fullPublicId,
+              api_key: apiKey,
+              timestamp,
+              signature,
+            }),
+          });
+
+          if (!deleteRes.ok) {
+            console.error('Cloudinary delete failed:', await deleteRes.text());
+          }
+        }
+      }
+    } catch (err) {
+      // Log error but don't fail the delete operation
+      console.error('Error deleting photo from Cloudinary:', err);
+    }
   }
 
   // Remove from Redis
