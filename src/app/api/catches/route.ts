@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
 import { fetchWeather, getSunPosition } from '@/lib/weather';
+import { catchSchema } from '@/lib/validation';
 import type { Catch, User } from '@/types';
 
 // GET /api/catches - List all catches for user
@@ -21,19 +22,44 @@ export async function GET(request: NextRequest) {
   const user = userData as User;
   const catchIds = await redis.lrange(keys.catchesByUser(user.id), 0, -1);
   
-  const catches: Catch[] = [];
-  for (const catchId of catchIds) {
-    const catchData = await redis.get(keys.catch(catchId));
-    if (catchData) {
-      const c = catchData as Catch;
-      // Enrich with spot data
-      const spotData = await redis.get(keys.spot(c.spotId));
-      if (spotData) {
-        c.spot = spotData as any;
-      }
-      catches.push(c);
-    }
+  // Batch load all catches
+  if (catchIds.length === 0) {
+    return NextResponse.json({ catches: [] });
   }
+
+  const pipeline = redis.pipeline();
+  catchIds.forEach((id) => pipeline.get(keys.catch(id)));
+  const catchesData = await pipeline.exec();
+
+  // Collect unique spot IDs for batch loading
+  const spotIds = new Set<string>();
+  const catches: Catch[] = [];
+  
+  catchesData?.forEach((data) => {
+    if (data) {
+      const c = data as Catch;
+      catches.push(c);
+      spotIds.add(c.spotId);
+    }
+  });
+
+  // Batch load spots
+  const spotPipeline = redis.pipeline();
+  spotIds.forEach((id) => spotPipeline.get(keys.spot(id)));
+  const spotsData = await spotPipeline.exec();
+  
+  const spotsMap = new Map();
+  spotsData?.forEach((data) => {
+    if (data) {
+      const spot = data as any;
+      spotsMap.set(spot.id, spot);
+    }
+  });
+
+  // Enrich catches with spot data
+  catches.forEach((c) => {
+    c.spot = spotsMap.get(c.spotId);
+  });
 
   // Sort by timestamp desc
   catches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -42,7 +68,6 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/catches - Create new catch
-// NOTE: Photo upload disabled for MVP - Cloudinary not configured
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -60,7 +85,22 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const { spotId, species, length, weight, bait, technique, notes, timestamp, catchLat, catchLng, imageUrl } = body;
+    // Zod-Validierung
+    const result = catchSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input', 
+          details: result.error.issues.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { spotId, species, length, weight, bait, technique, notes, timestamp, catchLat, catchLng, imageUrl } = result.data;
     
     // Timestamp aus Body oder jetzt
     const catchTimestamp = timestamp || new Date().toISOString();
@@ -68,15 +108,8 @@ export async function POST(request: NextRequest) {
     const date = catchDate.toISOString().split('T')[0];
     const time = catchDate.toTimeString().slice(0, 5); // HH:MM
 
-    if (!spotId || !species || !bait) {
-      return NextResponse.json(
-        { error: 'Missing required fields: spotId, species, bait' },
-        { status: 400 }
-      );
-    }
-
     // Get spot data
-    const spotData = await redis.get(keys.spot(spotId));
+    const spotData = await redis.get(keys.spot(spotId!));
     if (!spotData) {
       return NextResponse.json({ error: 'Spot not found' }, { status: 404 });
     }
@@ -86,7 +119,8 @@ export async function POST(request: NextRequest) {
     let weather;
     try {
       weather = await fetchWeather(spot.lat, spot.lng, catchTimestamp);
-    } catch {
+    } catch (err) {
+      console.error('Weather fetch failed:', err);
       // Fallback weather data
       weather = {
         temp: 15,
@@ -101,7 +135,8 @@ export async function POST(request: NextRequest) {
     let sunPosition;
     try {
       sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
-    } catch {
+    } catch (err) {
+      console.error('Sun position calc failed:', err);
       // Fallback
       sunPosition = {
         hoursFromSunrise: 0,
@@ -110,20 +145,20 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Create catch (without photo for MVP)
+    // Create catch
     const newCatch: Catch = {
       id: crypto.randomUUID(),
       userId: user.id,
-      spotId,
-      lat: spot.lat,        // Kopie für Karte
-      lng: spot.lng,        // Kopie für Karte
+      spotId: spotId!,
+      lat: spot.lat,
+      lng: spot.lng,
       ...(catchLat !== undefined && catchLng !== undefined && {
         catchLat,
         catchLng,
       }),
       species,
-      length,
-      weight,
+      length: length || undefined,
+      weight: weight || undefined,
       bait,
       technique,
       weather,
@@ -138,7 +173,7 @@ export async function POST(request: NextRequest) {
     // Save to Redis
     await redis.set(keys.catch(newCatch.id), newCatch);
     await redis.lpush(keys.catchesByUser(user.id), newCatch.id);
-    await redis.lpush(keys.catchesBySpot(spotId), newCatch.id);
+    await redis.lpush(keys.catchesBySpot(spotId!), newCatch.id);
 
     return NextResponse.json({ catch: newCatch }, { status: 201 });
   } catch (error) {
@@ -173,6 +208,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing catch ID' }, { status: 400 });
     }
 
+    // Zod-Validierung für Updates
+    const updateSchema = catchSchema.partial();
+    const result = updateSchema.safeParse(updates);
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input', 
+          details: result.error.issues.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const validatedUpdates = result.data;
+
     // Get existing catch
     const catchData = await redis.get(keys.catch(id));
     if (!catchData) {
@@ -194,8 +247,8 @@ export async function PUT(request: NextRequest) {
     let lng = existingCatch.lng;
     
     // If spot changed, update coordinates
-    if (updates.spotId && updates.spotId !== existingCatch.spotId) {
-      const newSpotData = await redis.get(keys.spot(updates.spotId));
+    if (validatedUpdates.spotId && validatedUpdates.spotId !== existingCatch.spotId) {
+      const newSpotData = await redis.get(keys.spot(validatedUpdates.spotId));
       if (newSpotData) {
         const newSpot = newSpotData as any;
         lat = newSpot.lat;
@@ -203,19 +256,20 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    if (updates.timestamp && updates.timestamp !== existingCatch.timestamp) {
-      const catchDate = new Date(updates.timestamp);
+    if (validatedUpdates.timestamp && validatedUpdates.timestamp !== existingCatch.timestamp) {
+      const catchDate = new Date(validatedUpdates.timestamp);
       date = catchDate.toISOString().split('T')[0];
       time = catchDate.toTimeString().slice(0, 5);
       
       // Recalculate sun position
       try {
-        const spotData = await redis.get(keys.spot(updates.spotId || existingCatch.spotId));
+        const spotData = await redis.get(keys.spot(validatedUpdates.spotId || existingCatch.spotId));
         if (spotData) {
           const spot = spotData as any;
           sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
         }
-      } catch {
+      } catch (err) {
+        console.error('Sun position recalc failed:', err);
         // Keep existing sun position
       }
     }
@@ -223,7 +277,7 @@ export async function PUT(request: NextRequest) {
     // Merge updates
     const updatedCatch: Catch = {
       ...existingCatch,
-      ...updates,
+      ...validatedUpdates,
       lat,
       lng,
       date,
