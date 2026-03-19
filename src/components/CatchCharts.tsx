@@ -98,16 +98,25 @@ export function CatchCharts({ catches, spots }: CatchChartsProps) {
     const totalCatches = catches.length;
     const totalWeight = catches.reduce((sum, c) => sum + (c.weight || 0), 0);
     const avgWeight = totalWeight / totalCatches;
-    const biggestCatch = catches.reduce((max, c) => 
+    
+    // PB by weight
+    const biggestByWeight = catches.reduce((max, c) => 
       (c.weight || 0) > (max.weight || 0) ? c : max, catches[0]);
+    
+    // PB by length
+    const biggestByLength = catches.reduce((max, c) => 
+      (c.length || 0) > (max.length || 0) ? c : max, catches[0]);
+    
     const uniqueSpecies = new Set(catches.map((c) => c.species)).size;
     
     return {
       totalCatches,
       totalWeight: totalWeight.toFixed(2),
       avgWeight: avgWeight.toFixed(2),
-      biggestSpecies: biggestCatch.species,
-      biggestWeight: biggestCatch.weight?.toFixed(2) || '-',
+      biggestWeightSpecies: biggestByWeight.species,
+      biggestWeight: biggestByWeight.weight?.toFixed(2) || '-',
+      biggestLengthSpecies: biggestByLength.species,
+      biggestLength: biggestByLength.length?.toFixed(0) || '-',
       uniqueSpecies,
     };
   }, [catches]);
@@ -124,7 +133,7 @@ export function CatchCharts({ catches, spots }: CatchChartsProps) {
     <div className="space-y-6">
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-2xl font-bold text-blue-700">{stats.totalCatches}</p>
             <p className="text-xs text-gray-600">Gesamtfänge</p>
@@ -141,9 +150,13 @@ export function CatchCharts({ catches, spots }: CatchChartsProps) {
             <p className="text-2xl font-bold text-purple-700">{stats.uniqueSpecies}</p>
             <p className="text-xs text-gray-600">Fischarten</p>
           </div>
-          <div className="bg-red-50 p-4 rounded-lg col-span-2 md:col-span-1">
+          <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-lg font-bold text-red-700">{stats.biggestWeight}kg</p>
-            <p className="text-xs text-gray-600">PB: {stats.biggestSpecies}</p>
+            <p className="text-xs text-gray-600">PB Gewicht: {stats.biggestWeightSpecies}</p>
+          </div>
+          <div className="bg-cyan-50 p-4 rounded-lg">
+            <p className="text-lg font-bold text-cyan-700">{stats.biggestLength}cm</p>
+            <p className="text-xs text-gray-600">PB Länge: {stats.biggestLengthSpecies}</p>
           </div>
         </div>
       )}
