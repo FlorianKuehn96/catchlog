@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Spot, Catch } from '@/types';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
+import { ImageUpload } from '@/components/ImageUpload';
 
 interface CatchFormProps {
   spots: Spot[];
@@ -93,6 +94,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [bait, setBait] = useState(initialCatch?.bait || '');
   const [technique, setTechnique] = useState(initialCatch?.technique || '');
   const [notes, setNotes] = useState(initialCatch?.notes || '');
+  const [imageUrl, setImageUrl] = useState(initialCatch?.photoUrl || '');
   
   // Zeitstempel
   const [date, setDate] = useState(() => {
@@ -315,6 +317,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         bait,
         technique,
         notes,
+        imageUrl,
         timestamp,
         ...(useCatchCoordinates && catchLat && catchLng && {
           catchLat,
@@ -743,9 +746,11 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Foto
         </label>
-        <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-700">
-          📷 Foto-Upload temporär deaktiviert
-        </div>
+        <ImageUpload
+          currentImageUrl={imageUrl}
+          onImageUpload={setImageUrl}
+          onImageRemove={() => setImageUrl('')}
+        />
       </div>
 
       <div>
