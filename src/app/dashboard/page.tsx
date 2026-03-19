@@ -335,10 +335,19 @@ export default function Dashboard() {
                   <Link
                     href="/faq"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <span>❓</span>
                     <span>FAQ</span>
+                  </Link>
+
+                  <Link
+                    href="/personal-bests"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                  >
+                    <span>🏆</span>
+                    <span>Meine Rekorde</span>
                   </Link>
 
                   {/* Logout */}
