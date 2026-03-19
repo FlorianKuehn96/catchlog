@@ -70,11 +70,14 @@ export const authOptions = {
         const redis = getRedis();
         const userData = await redis.get(keys.user(session.user.email));
         if (userData) {
-          // Extend session.user with custom fields
+          // Extend session.user with custom fields from DB
           const u = userData as User;
           const su: any = session.user;
           su.id = u.id;
           su.subscription = u.subscription;
+          // Use DB values over OAuth values (allows profile editing)
+          su.name = u.name || su.name;
+          su.image = u.image || su.image;
         }
       }
       return session;
