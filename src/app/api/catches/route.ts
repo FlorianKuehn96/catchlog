@@ -284,35 +284,59 @@ export async function DELETE(request: NextRequest) {
       const apiKey = process.env.CLOUDINARY_API_KEY;
       const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
+      console.log('Deleting photo from Cloudinary:', c.photoUrl);
+
       if (cloudName && apiKey && apiSecret) {
         // Extract public_id from photoUrl
-        // URL format: https://res.cloudinary.com/{cloud}/image/upload/.../folder/filename.jpg
-        const urlMatch = c.photoUrl.match(/\/([^\/]+)\/[^\/]+$/);
-        if (urlMatch) {
-          const publicId = urlMatch[1].replace(/\.[^/.]+$/, ''); // Remove extension
-          const fullPublicId = `catchlog/catches/${publicId}`;
+        // URL format: https://res.cloudinary.com/{cloud}/image/upload/v1234567890/catchlog/catches/filename.jpg
+        // We need: catchlog/catches/filename (without extension)
+        const urlObj = new URL(c.photoUrl);
+        const pathParts = urlObj.pathname.split('/');
+        
+        // Find index of 'upload' and extract everything after it
+        const uploadIndex = pathParts.indexOf('upload');
+        if (uploadIndex !== -1 && uploadIndex + 1 < pathParts.length) {
+          // Skip version number (v1234567890) if present
+          let startIndex = uploadIndex + 1;
+          if (pathParts[startIndex]?.startsWith('v')) {
+            startIndex++;
+          }
+          
+          // Join remaining parts to get public_id with folder
+          const publicIdWithExtension = pathParts.slice(startIndex).join('/');
+          const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ''); // Remove extension
+
+          console.log('Cloudinary public_id:', publicId);
 
           // Generate signature for deletion
           const timestamp = Math.floor(Date.now() / 1000);
-          const signatureString = `public_id=${fullPublicId}&timestamp=${timestamp}${apiSecret}`;
-          const signature = require('crypto').createHash('sha1').update(signatureString).digest('hex');
+          const signatureString = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+          const crypto = await import('crypto');
+          const signature = crypto.createHash('sha1').update(signatureString).digest('hex');
 
           // Delete from Cloudinary
           const deleteRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              public_id: fullPublicId,
+              public_id: publicId,
               api_key: apiKey,
               timestamp,
               signature,
             }),
           });
 
+          const deleteResult = await deleteRes.json();
+          console.log('Cloudinary delete result:', deleteResult);
+
           if (!deleteRes.ok) {
-            console.error('Cloudinary delete failed:', await deleteRes.text());
+            console.error('Cloudinary delete failed:', deleteResult);
           }
+        } else {
+          console.error('Could not parse Cloudinary URL:', c.photoUrl);
         }
+      } else {
+        console.log('Cloudinary credentials not configured, skipping photo deletion');
       }
     } catch (err) {
       // Log error but don't fail the delete operation
