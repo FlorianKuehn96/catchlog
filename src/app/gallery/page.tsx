@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Catch } from '@/types';
@@ -11,6 +11,10 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<string>('all');
+  
+  // Lightbox State
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     loadCatches();
@@ -40,6 +44,50 @@ export default function GalleryPage() {
   // Eindeutige Fischarten für Filter
   const speciesList = [...new Set(catchesWithPhotos.map((c) => c.species))].sort();
 
+  // Lightbox Navigation
+  const openLightbox = (index: number) => {
+    setCurrentIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+  };
+
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : filteredCatches.length - 1));
+  }, [filteredCatches.length]);
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < filteredCatches.length - 1 ? prev + 1 : 0));
+  }, [filteredCatches.length]);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxOpen) return;
+      
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') goToPrevious();
+      if (e.key === 'ArrowRight') goToNext();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, goToPrevious, goToNext]);
+
+  // Scroll lock when lightbox open
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [lightboxOpen]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE', {
       day: '2-digit',
@@ -47,6 +95,8 @@ export default function GalleryPage() {
       year: 'numeric',
     });
   };
+
+  const currentCatch = filteredCatches[currentIndex];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,10 +164,11 @@ export default function GalleryPage() {
 
             {/* Galerie Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredCatches.map((c) => (
+              {filteredCatches.map((c, index) => (
                 <div
                   key={c.id}
-                  className="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+                  onClick={() => openLightbox(index)}
+                  className="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
                 >
                   {/* Bild */}
                   <div className="aspect-square relative overflow-hidden">
@@ -135,6 +186,12 @@ export default function GalleryPage() {
                           {c.weight && `${c.weight}kg`}
                         </p>
                       </div>
+                    </div>
+                    {/* Click Indicator */}
+                    <div className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
                     </div>
                   </div>
 
@@ -169,6 +226,74 @@ export default function GalleryPage() {
           </>
         )}
       </main>
+
+      {/* Lightbox */}
+      {lightboxOpen && currentCatch && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          {/* Close Button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white/80 hover:text-white p-2 z-10"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Previous Button */}
+          {filteredCatches.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-2 z-10"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Next Button */}
+          {filteredCatches.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goToNext(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-2 z-10"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Image Container */}
+          <div 
+            className="max-w-5xl max-h-[80vh] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={currentCatch.photoUrl}
+              alt={`${currentCatch.species} Fang`}
+              className="w-full h-full object-contain max-h-[70vh]"
+            />
+            
+            {/* Info Bar */}
+            <div className="mt-4 text-center text-white">
+              <h2 className="text-2xl font-bold">{currentCatch.species}</h2>
+              <div className="flex items-center justify-center gap-4 mt-2 text-gray-300">
+                {currentCatch.length && <span>📏 {currentCatch.length} cm</span>}
+                {currentCatch.weight && <span>⚖️ {currentCatch.weight} kg</span>}
+                <span>📅 {formatDate(currentCatch.date)}</span>
+                {currentCatch.spot && <span>💧 {currentCatch.spot.name}</span>}
+              </div>              
+              <div className="mt-2 text-sm text-gray-400">
+                {currentIndex + 1} / {filteredCatches.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
