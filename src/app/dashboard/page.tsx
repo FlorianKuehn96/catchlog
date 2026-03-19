@@ -23,6 +23,14 @@ export default function Dashboard() {
   const [newSpotLng, setNewSpotLng] = useState<number | ''>('');
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   const [editingCatch, setEditingCatch] = useState<Catch | undefined>(undefined);
+  
+  // Filter states
+  const [filterSpecies, setFilterSpecies] = useState<string>('');
+  const [filterSpot, setFilterSpot] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const loadData = async () => {
     try {
@@ -164,6 +172,39 @@ export default function Dashboard() {
     loadData();
   };
 
+  // Filter logic
+  const filteredCatches = catches.filter((c) => {
+    // Species filter
+    if (filterSpecies && c.species !== filterSpecies) return false;
+    
+    // Spot filter
+    if (filterSpot && c.spotId !== filterSpot) return false;
+    
+    // Date range filter
+    if (filterDateFrom && c.date < filterDateFrom) return false;
+    if (filterDateTo && c.date > filterDateTo) return false;
+    
+    // Search query (species, spot name, bait, technique)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const spotName = spots.find(s => s.id === c.spotId)?.name || '';
+      const searchableText = [
+        c.species,
+        spotName,
+        c.bait,
+        c.technique,
+        c.notes,
+      ].filter(Boolean).join(' ').toLowerCase();
+      
+      if (!searchableText.includes(query)) return false;
+    }
+    
+    return true;
+  });
+
+  // Get unique species for filter dropdown
+  const uniqueSpecies = Array.from(new Set(catches.map(c => c.species))).sort();
+
   // Format sun position for display
   const formatSunPosition = (sunPos: Catch['sunPosition']) => {
     if (!sunPos) return null;
@@ -273,12 +314,123 @@ export default function Dashboard() {
             {/* Tab Content */}
             {activeTab === 'catches' && (
               <div className="space-y-4">
-                {catches.length === 0 ? (
+                {/* Search & Filter Bar */}
+                <div className="bg-white p-4 rounded-lg shadow space-y-3">
+                  {/* Search */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="🔍 Suche nach Fisch, Gewässer, Köder..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  
+                  {/* Filter Toggle */}
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    <span>{showFilters ? '▼' : '▶'}</span>
+                    <span>Filter {showFilters ? 'ausblenden' : 'anzeigen'}</span>
+                    {(filterSpecies || filterSpot || filterDateFrom || filterDateTo) && (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+                        Aktiv
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* Filter Panel */}
+                  {showFilters && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                      {/* Species Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Fischart</label>
+                        <select
+                          value={filterSpecies}
+                          onChange={(e) => setFilterSpecies(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Alle Fischarten</option>
+                          {uniqueSpecies.map((species) => (
+                            <option key={species} value={species}>{species}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Spot Filter */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Gewässer</label>
+                        <select
+                          value={filterSpot}
+                          onChange={(e) => setFilterSpot(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Alle Gewässer</option>
+                          {spots.map((spot) => (
+                            <option key={spot.id} value={spot.id}>{spot.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Date From */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Von Datum</label>
+                        <input
+                          type="date"
+                          value={filterDateFrom}
+                          onChange={(e) => setFilterDateFrom(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      {/* Date To */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Bis Datum</label>
+                        <input
+                          type="date"
+                          value={filterDateTo}
+                          onChange={(e) => setFilterDateTo(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Clear Filters */}
+                  {(filterSpecies || filterSpot || filterDateFrom || filterDateTo || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setFilterSpecies('');
+                        setFilterSpot('');
+                        setFilterDateFrom('');
+                        setFilterDateTo('');
+                        setSearchQuery('');
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      ❌ Alle Filter zurücksetzen
+                    </button>
+                  )}
+                  
+                  {/* Results count */}
+                  <p className="text-sm text-gray-500">
+                    {filteredCatches.length} von {catches.length} Fängen angezeigt
+                  </p>
+                </div>
+                
+                {filteredCatches.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
-                    Noch keine Fänge eingetragen. Fang an!
+                    {catches.length === 0 
+                      ? 'Noch keine Fänge eingetragen. Fang an!' 
+                      : 'Keine Fänge mit diesen Filtern gefunden.'}
                   </p>
                 ) : (
-                  catches.map((c) => (
+                  filteredCatches.map((c) => (
                     <div key={c.id} className="bg-white p-4 rounded-lg shadow">
                       <div className="flex gap-4">
                         {c.photoUrl && (
