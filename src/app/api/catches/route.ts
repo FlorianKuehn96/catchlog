@@ -288,20 +288,22 @@ export async function DELETE(request: NextRequest) {
 
       if (cloudName && apiKey && apiSecret) {
         // Extract public_id from photoUrl
-        // URL format: https://res.cloudinary.com/{cloud}/image/upload/v1234567890/catchlog/catches/filename.jpg
+        // URL format: https://res.cloudinary.com/{cloud}/image/upload/c_limit,w_1200,h_1200,q_auto/v1234567890/catchlog/catches/filename.jpg
+        // Or: https://res.cloudinary.com/{cloud}/image/upload/v1234567890/catchlog/catches/filename.jpg
         // We need: catchlog/catches/filename (without extension)
         const urlObj = new URL(c.photoUrl);
         const pathParts = urlObj.pathname.split('/');
         
-        // Find index of 'upload' and extract everything after it
-        const uploadIndex = pathParts.indexOf('upload');
-        if (uploadIndex !== -1 && uploadIndex + 1 < pathParts.length) {
-          // Skip version number (v1234567890) if present
-          let startIndex = uploadIndex + 1;
-          if (pathParts[startIndex]?.startsWith('v')) {
-            startIndex++;
+        // Find the version number (starts with 'v') and extract everything after it
+        let startIndex = -1;
+        for (let i = 0; i < pathParts.length; i++) {
+          if (pathParts[i].match(/^v\d+$/)) {
+            startIndex = i + 1;
+            break;
           }
-          
+        }
+        
+        if (startIndex !== -1 && startIndex < pathParts.length) {
           // Join remaining parts to get public_id with folder
           const publicIdWithExtension = pathParts.slice(startIndex).join('/');
           const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ''); // Remove extension

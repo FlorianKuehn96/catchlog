@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [newSpotLng, setNewSpotLng] = useState<number | ''>('');
   const [showSpotMapPicker, setShowSpotMapPicker] = useState(false);
   const [editingCatch, setEditingCatch] = useState<Catch | undefined>(undefined);
+  const [formKey, setFormKey] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -399,7 +400,15 @@ export default function Dashboard() {
                 />
               </div>
             ) : (
-              <CatchForm spots={spots} catches={catches} onSuccess={loadData} />
+              <CatchForm 
+                key={formKey}
+                spots={spots} 
+                catches={catches} 
+                onSuccess={() => {
+                  loadData();
+                  setFormKey(prev => prev + 1);
+                }} 
+              />
             )}
           </div>
 
