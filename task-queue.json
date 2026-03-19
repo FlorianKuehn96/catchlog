@@ -11,35 +11,11 @@
       "status": "open"
     },
     {
-      "id": "P2-002",
-      "priority": "P2",
-      "title": "Magic Numbers konstantifizieren",
-      "description": "DEBOUNCE_DELAY, MAX_FILE_SIZE, etc. als Konstanten definieren",
-      "files": ["src/components/CatchForm.tsx", "src/components/ImageUpload.tsx"],
-      "status": "partial"
-    },
-    {
-      "id": "P2-003",
-      "priority": "P2",
-      "title": "Veraltete Kommentare entfernen",
-      "description": "Kommentare wie 'without photo for MVP' entfernen (Feature ist implementiert)",
-      "files": ["src/app/api/catches/route.ts"],
-      "status": "open"
-    },
-    {
       "id": "P2-004",
       "priority": "P2",
       "title": "Tests hinzufügen",
       "description": "Unit/Integration Tests für API-Routen und Komponenten",
       "files": ["src/**/*.test.ts", "src/**/*.test.tsx"],
-      "status": "open"
-    },
-    {
-      "id": "P2-005",
-      "priority": "P2",
-      "title": "Rate Limiting implementieren",
-      "description": "API-Rate-Limiting für Catch-Erstellung und Uploads",
-      "files": ["src/middleware.ts"],
       "status": "open"
     }
   ],
@@ -70,6 +46,18 @@
       "title": "Magic Numbers: Constants erstellt",
       "completed": "2026-03-19",
       "note": "MAX_FILE_SIZE, IMAGE_MAX_WIDTH, etc. in src/lib/constants.ts ausgelagert"
+    },
+    {
+      "id": "P2-003",
+      "title": "Veraltete Kommentare entfernen",
+      "completed": "2026-03-19",
+      "note": "MVP-Kommentar aus env.ts entfernt, Cloudinary jetzt required"
+    },
+    {
+      "id": "P2-005",
+      "title": "Rate Limiting Framework",
+      "completed": "2026-03-19",
+      "note": "src/lib/rate-limit.ts erstellt, Redis-basiertes Rate Limiting"
     }
   ]
 }
