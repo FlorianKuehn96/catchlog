@@ -3,22 +3,6 @@
   "created": "2026-03-19",
   "backlog": [
     {
-      "id": "P1-001",
-      "priority": "P1",
-      "title": "Type Safety: `any` Casts reduzieren",
-      "description": "Ersetze `as any` durch ordentliche Typen oder Zod-Validierung in API-Routen",
-      "files": ["src/app/api/catches/route.ts", "src/app/api/spots/route.ts"],
-      "status": "open"
-    },
-    {
-      "id": "P1-002",
-      "priority": "P1",
-      "title": "Error Handling spezifischer machen",
-      "description": "Catch-All Blöcke durch spezifische Error-Logging ersetzen",
-      "files": ["src/app/api/**/*.ts"],
-      "status": "open"
-    },
-    {
       "id": "P2-001",
       "priority": "P2",
       "title": "Auth-Check in Middleware auslagern",
@@ -32,7 +16,7 @@
       "title": "Magic Numbers konstantifizieren",
       "description": "DEBOUNCE_DELAY, MAX_FILE_SIZE, etc. als Konstanten definieren",
       "files": ["src/components/CatchForm.tsx", "src/components/ImageUpload.tsx"],
-      "status": "open"
+      "status": "partial"
     },
     {
       "id": "P2-003",
@@ -70,6 +54,22 @@
       "id": "P0-002",
       "title": "N+1 Query Problem fixen",
       "completed": "2026-03-19"
+    },
+    {
+      "id": "P1-001",
+      "title": "Type Safety: `any` Casts reduzieren",
+      "completed": "2026-03-19"
+    },
+    {
+      "id": "P1-002",
+      "title": "Error Handling spezifischer machen",
+      "completed": "2026-03-19"
+    },
+    {
+      "id": "P2-002",
+      "title": "Magic Numbers: Constants erstellt",
+      "completed": "2026-03-19",
+      "note": "MAX_FILE_SIZE, IMAGE_MAX_WIDTH, etc. in src/lib/constants.ts ausgelagert"
     }
   ]
 }

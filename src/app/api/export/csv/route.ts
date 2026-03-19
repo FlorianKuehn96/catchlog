@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
+import type { Catch, Spot, User } from '@/types';
 
 // GET /api/export/csv - Export all catches as CSV
 export async function GET(req: NextRequest) {
@@ -20,32 +21,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 });
     }
 
-    const user = userData as any;
+    const user = userData as User;
     const userId = user.id;
 
     // Get all catches (stored as list)
     const catchIds = await redis.lrange(keys.catchesByUser(userId), 0, -1);
     
-    const catches = [];
+    const catches: Catch[] = [];
     for (const id of catchIds) {
       const c = await redis.get(keys.catch(id));
-      if (c) catches.push(c);
+      if (c) catches.push(c as Catch);
     }
 
     // Get spots for reference (stored as array via set)
     const spotsData = await redis.get(keys.spotsByUser(userId));
     const spotIds = Array.isArray(spotsData) ? spotsData : [];
-    const spots: Record<string, any> = {};
+    const spots: Record<string, Spot> = {};
     for (const id of spotIds) {
       const s = await redis.get(keys.spot(id));
       if (s) {
-        const spot = s as any;
+        const spot = s as Spot;
         spots[spot.id] = spot;
       }
     }
 
     // Sort by date descending
-    catches.sort((a: any, b: any) => 
+    catches.sort((a, b) => 
       new Date(b.date || b.timestamp).getTime() - new Date(a.date || a.timestamp).getTime()
     );
 
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
     ];
 
     // CSV Rows
-    const rows = catches.map((c: any) => {
+    const rows = catches.map((c) => {
       const spot = spots[c.spotId];
       const sunPos = c.sunPosition;
       let sunText = '';
@@ -87,8 +88,8 @@ export async function GET(req: NextRequest) {
         c.weight || '',
         c.bait || '',
         c.technique || '',
-        c.weather || '',
-        c.temperature || '',
+        c.weather?.conditions || '',
+        c.weather?.temp || '',
         sunText,
         c.notes ? `"${c.notes.replace(/"/g, '""')}"` : '',
         c.catchLat && c.catchLng ? `${c.catchLat},${c.catchLng}` : '',
@@ -108,10 +109,11 @@ export async function GET(req: NextRequest) {
         'Content-Disposition': `attachment; filename="catchlog-export-${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error exporting CSV:', error);
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
     return NextResponse.json(
-      { error: `Fehler: ${error.message || 'Unbekannter Fehler'}` },
+      { error: `Fehler: ${message}` },
       { status: 500 }
     );
   }

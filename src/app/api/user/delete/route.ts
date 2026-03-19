@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
+import type { User } from '@/types';
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 });
     }
 
-    const user = userData as any;
+    const user = userData as User;
     const userId = user.id;
 
     // Delete all user's catches - handle both array and string formats
@@ -50,10 +51,11 @@ export async function DELETE(req: NextRequest) {
     await redis.del(keys.user(session.user.email));
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting user:', error);
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
     return NextResponse.json(
-      { error: `Fehler: ${error.message || 'Unbekannter Fehler'}` },
+      { error: `Fehler: ${message}` },
       { status: 500 }
     );
   }

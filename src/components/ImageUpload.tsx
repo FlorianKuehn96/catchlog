@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { MAX_FILE_SIZE, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT, IMAGE_QUALITY } from '@/lib/constants';
 
 interface ImageUploadProps {
   currentImageUrl?: string;
@@ -29,8 +30,8 @@ export function ImageUpload({ currentImageUrl, onImageUpload, onImageRemove }: I
       return;
     }
 
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
       setError('Das Bild darf maximal 10MB groß sein');
       return;
     }
@@ -54,7 +55,7 @@ export function ImageUpload({ currentImageUrl, onImageUpload, onImageRemove }: I
       formData.append('timestamp', timestamp.toString());
       formData.append('signature', signature);
       formData.append('folder', 'catchlog/catches');
-      formData.append('transformation', 'c_limit,w_1200,h_1200');
+      formData.append('transformation', `c_limit,w_${IMAGE_MAX_WIDTH},h_${IMAGE_MAX_HEIGHT}`);
 
       const uploadResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
@@ -73,7 +74,7 @@ export function ImageUpload({ currentImageUrl, onImageUpload, onImageRemove }: I
       // Generate optimized URL
       const optimizedUrl = data.secure_url.replace(
         '/upload/',
-        '/upload/c_limit,w_1200,h_1200,q_auto/'
+        `/upload/c_limit,w_${IMAGE_MAX_WIDTH},h_${IMAGE_MAX_HEIGHT},q_${IMAGE_QUALITY}/`
       );
 
       setPreview(optimizedUrl);

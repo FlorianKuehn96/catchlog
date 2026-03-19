@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
+import type { User } from '@/types';
 
 // PUT /api/user/update - Update user profile
 export async function PUT(req: NextRequest) {
@@ -23,15 +24,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 });
     }
 
-    const user = userData as any;
+    const user = userData as User;
 
     // Update fields
     if (name !== undefined) {
-      user.name = name.trim() || null;
+      user.name = name.trim() || undefined;
     }
     
     if (image !== undefined) {
-      user.image = image || null;
+      user.image = image || undefined;
     }
 
     // Save updated user
@@ -44,10 +45,11 @@ export async function PUT(req: NextRequest) {
         image: user.image,
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating user:', error);
+    const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
     return NextResponse.json(
-      { error: `Fehler: ${error.message || 'Unbekannter Fehler'}` },
+      { error: `Fehler: ${message}` },
       { status: 500 }
     );
   }

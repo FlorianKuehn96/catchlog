@@ -4,7 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
 import { fetchWeather, getSunPosition } from '@/lib/weather';
 import { catchSchema } from '@/lib/validation';
-import type { Catch, User } from '@/types';
+import type { Catch, User, Spot } from '@/types';
 
 // GET /api/catches - List all catches for user
 export async function GET(request: NextRequest) {
@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
   spotIds.forEach((id) => spotPipeline.get(keys.spot(id)));
   const spotsData = await spotPipeline.exec();
   
-  const spotsMap = new Map();
+  const spotsMap = new Map<string, Spot>();
   spotsData?.forEach((data) => {
     if (data) {
-      const spot = data as any;
+      const spot = data as Spot;
       spotsMap.set(spot.id, spot);
     }
   });
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (!spotData) {
       return NextResponse.json({ error: 'Spot not found' }, { status: 404 });
     }
-    const spot = spotData as any;
+    const spot = spotData as Spot;
 
     // Fetch weather data
     let weather;
@@ -250,7 +250,7 @@ export async function PUT(request: NextRequest) {
     if (validatedUpdates.spotId && validatedUpdates.spotId !== existingCatch.spotId) {
       const newSpotData = await redis.get(keys.spot(validatedUpdates.spotId));
       if (newSpotData) {
-        const newSpot = newSpotData as any;
+        const newSpot = newSpotData as Spot;
         lat = newSpot.lat;
         lng = newSpot.lng;
       }
@@ -265,7 +265,7 @@ export async function PUT(request: NextRequest) {
       try {
         const spotData = await redis.get(keys.spot(validatedUpdates.spotId || existingCatch.spotId));
         if (spotData) {
-          const spot = spotData as any;
+          const spot = spotData as Spot;
           sunPosition = getSunPosition(spot.lat, spot.lng, catchDate);
         }
       } catch (err) {
