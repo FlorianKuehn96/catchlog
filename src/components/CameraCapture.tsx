@@ -279,13 +279,13 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
       )}
 
       {/* Camera Preview */}
-      {isCameraOpen && !capturedImage && !loading && (
+      {isCameraOpen && !capturedImage && (
         <>
           <div className="flex-1 relative bg-black flex items-center justify-center">
             {/* Loading indicator while video initializes */}
-            {!videoReady && (
+            {(loading || !videoReady) && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="text-white text-lg">⏳ Kamera wird initialisiert...</div>
+                <div className="text-white text-lg">{loading ? "⏳ Kamera wird gestartet..." : "⏳ Kamera wird initialisiert..."}</div>
               </div>
             )}
             
