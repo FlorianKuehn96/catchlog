@@ -30,7 +30,7 @@ export const catchSchema = z.object({
   timestamp: z.string().datetime().optional(),
   catchLat: z.number().min(-90).max(90).optional(),
   catchLng: z.number().min(-180).max(180).optional(),
-  imageUrl: z.string().url().optional().or(z.literal('')),
+  imageUrl: z.string().optional().or(z.literal('')), // Erlaubt URLs und Base64 data URLs
 });
 
 export type CatchInput = z.infer<typeof catchSchema>;
