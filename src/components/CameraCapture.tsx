@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -14,57 +14,104 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
+      setLoading(true);
+      setVideoReady(false);
+      
+      console.log("Starting camera with facingMode:", facingMode);
+      
+      const constraints = {
         video: {
           facingMode: facingMode,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
         audio: false,
-      });
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Camera stream obtained:", stream);
+      console.log("Tracks:", stream.getTracks());
 
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log("Video metadata loaded");
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              console.log("Video playing");
+              setVideoReady(true);
+              setLoading(false);
+            }).catch((err) => {
+              console.error("Error playing video:", err);
+              setError("Fehler beim Starten der Kamera: " + err.message);
+              setLoading(false);
+            });
+          }
+        };
+        
+        videoRef.current.onerror = (err) => {
+          console.error("Video element error:", err);
+          setError("Fehler im Video-Element");
+          setLoading(false);
+        };
       }
 
       setIsCameraOpen(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Camera error:", err);
       setError(
-        "Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff."
+        "Kamera konnte nicht gestartet werden: " + (err.message || "Unbekannter Fehler")
       );
+      setLoading(false);
     }
   }, [facingMode]);
 
   const stopCamera = useCallback(() => {
+    console.log("Stopping camera");
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        console.log("Stopping track:", track.label);
+        track.stop();
+      });
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.onloadedmetadata = null;
+    }
     setIsCameraOpen(false);
+    setVideoReady(false);
   }, []);
 
   const switchCamera = useCallback(() => {
     stopCamera();
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    setTimeout(startCamera, 100);
+    setTimeout(() => {
+      startCamera();
+    }, 300);
   }, [stopCamera, startCamera]);
 
   const capturePhoto = useCallback(() => {
-    if (videoRef.current && canvasRef.current) {
+    console.log("Capturing photo, video ready:", videoReady);
+    if (videoRef.current && canvasRef.current && videoReady) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
 
-      if (context) {
+      if (context && video.videoWidth && video.videoHeight) {
+        console.log("Video dimensions:", video.videoWidth, "x", video.videoHeight);
+        
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
@@ -100,11 +147,17 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
         context.fillText("CatchTracker", watermarkX, watermarkY);
 
         const imageData = canvas.toDataURL("image/jpeg", 0.9);
+        console.log("Photo captured, size:", imageData.length);
         setCapturedImage(imageData);
         stopCamera();
+      } else {
+        console.error("Video not ready or canvas context not available");
+        setError("Video nicht bereit. Bitte warte einen Moment und versuche es erneut.");
       }
+    } else {
+      console.error("Refs not available or video not ready");
     }
-  }, [stopCamera]);
+  }, [stopCamera, videoReady]);
 
   const confirmCapture = useCallback(() => {
     if (capturedImage) {
@@ -114,6 +167,7 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
 
   const retakePhoto = useCallback(() => {
     setCapturedImage(null);
+    setVideoReady(false);
     startCamera();
   }, [startCamera]);
 
@@ -131,6 +185,15 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
     },
     []
   );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
@@ -159,9 +222,10 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
           <div className="flex flex-col gap-4 w-full max-w-xs">
             <button
               onClick={startCamera}
-              className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg"
+              disabled={loading}
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg disabled:opacity-50"
             >
-              📸 Kamera öffnen
+              {loading ? "⏳ Lade..." : "📸 Kamera öffnen"}
             </button>
             
             <label className="flex items-center justify-center gap-3 px-6 py-4 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors cursor-pointer text-lg">
@@ -177,8 +241,16 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="text-white text-lg mb-4">⏳ Kamera wird gestartet...</div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
       {/* Error Message */}
-      {error && (
+      {error && !loading && (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="text-red-400 text-center mb-4">{error}</div>
           <button
@@ -189,8 +261,7 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
           </button>
           <div className="mt-8 text-center">
             <p className="text-gray-400 mb-4">Oder wähle ein Foto aus:</p>
-            <label className="bg-gray-700 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-gray-600 inline-flex items-center gap-2"
-            >
+            <label className="bg-gray-700 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-gray-600 inline-flex items-center gap-2">
               🖼️ Aus Galerie wählen
               <input
                 type="file"
@@ -204,15 +275,23 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
       )}
 
       {/* Camera Preview */}
-      {isCameraOpen && !capturedImage && (
+      {isCameraOpen && !capturedImage && !loading && (
         <>
-          <div className="flex-1 relative bg-black">
+          <div className="flex-1 relative bg-black flex items-center justify-center">
+            {/* Loading indicator while video initializes */}
+            {!videoReady && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="text-white text-lg">⏳ Kamera wird initialisiert...</div>
+              </div>
+            )}
+            
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
             />
 
             {/* Camera Controls */}
@@ -220,7 +299,8 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
               {/* Switch Camera */}
               <button
                 onClick={switchCamera}
-                className="text-white p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors text-2xl"
+                disabled={!videoReady}
+                className="text-white p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors text-2xl disabled:opacity-50"
                 title="Kamera wechseln"
               >
                 🔄
@@ -229,14 +309,14 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
               {/* Capture Button */}
               <button
                 onClick={capturePhoto}
-                className="w-20 h-20 rounded-full border-4 border-white bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                disabled={!videoReady}
+                className="w-20 h-20 rounded-full border-4 border-white bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center disabled:opacity-50"
               >
                 <div className="w-16 h-16 rounded-full bg-white" />
               </button>
 
               {/* Gallery Option */}
-              <label className="text-white p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors cursor-pointer text-2xl"
-              >
+              <label className="text-white p-3 bg-white/20 rounded-full hover:bg-white/30 transition-colors cursor-pointer text-2xl">
                 🖼️
                 <input
                   type="file"
