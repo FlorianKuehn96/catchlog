@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Spot, Catch } from '@/types';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
 import { ImageUpload } from '@/components/ImageUpload';
+import CameraCapture from '@/components/CameraCapture';
 
 interface CatchFormProps {
   spots: Spot[];
@@ -121,6 +122,9 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
   const [catchLng, setCatchLng] = useState<number | null>(null);
   const [showCatchMapPicker, setShowCatchMapPicker] = useState(false);
   const [catchGpsLoading, setCatchGpsLoading] = useState(false);
+  
+  // Kamera-Modal State
+  const [showCamera, setShowCamera] = useState(false);
   
   // Verhindert erneute Berechnung nach manueller Eingabe
   const [hasCalculatedWeight, setHasCalculatedWeight] = useState(false);
@@ -769,12 +773,42 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Foto
         </label>
-        <ImageUpload
-          currentImageUrl={imageUrl}
-          onImageUpload={setImageUrl}
-          onImageRemove={() => setImageUrl('')}
-        />
+        
+        {!imageUrl ? (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCamera(true)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              📸 Foto aufnehmen
+            </button>
+            <div className="flex-1">
+              <ImageUpload
+                currentImageUrl={imageUrl}
+                onImageUpload={setImageUrl}
+                onImageRemove={() => setImageUrl('')}
+              />
+            </div>
+          </div>
+        ) : (
+          <ImageUpload
+            currentImageUrl={imageUrl}
+            onImageUpload={setImageUrl}
+            onImageRemove={() => setImageUrl('')}
+          />
+        )}
       </div>
+
+      {showCamera && (
+        <CameraCapture
+          onCapture={(imageData) => {
+            setImageUrl(imageData);
+            setShowCamera(false);
+          }}
+          onCancel={() => setShowCamera(false)}
+        />
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
