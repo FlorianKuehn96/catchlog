@@ -43,50 +43,34 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
 
       if (videoRef.current) {
         const video = videoRef.current;
+        video.srcObject = stream;
         
-        // Set up event handlers BEFORE assigning srcObject
-        const handleCanPlay = () => {
-          console.log("Video can play");
-          video.play().then(() => {
-            console.log("Video playing successfully");
+        // Simple approach: just try to play
+        console.log("Attempting to play video...");
+        
+        const tryPlay = async () => {
+          try {
+            await video.play();
+            console.log("Video playing!");
             setVideoReady(true);
             setLoading(false);
-          }).catch((err) => {
-            console.error("Error playing video:", err);
-            setError("Fehler beim Starten der Kamera: " + err.message);
+          } catch (err: any) {
+            console.error("Play failed:", err);
+            setError("Fehler beim Starten: " + err.message);
             setLoading(false);
-          });
-        };
-        
-        const handleError = (err: Event) => {
-          console.error("Video element error:", err);
-          setError("Fehler im Video-Element");
-          setLoading(false);
-        };
-        
-        video.addEventListener('canplay', handleCanPlay, { once: true });
-        video.addEventListener('error', handleError, { once: true });
-        
-        // Fallback: if canplay doesn't fire within 3 seconds, try anyway
-        const fallbackTimeout = setTimeout(() => {
-          if (!videoReady && videoRef.current) {
-            console.log("Fallback: trying to play anyway");
-            video.play().then(() => {
-              console.log("Video playing (fallback)");
-              setVideoReady(true);
-              setLoading(false);
-            }).catch((err) => {
-              console.error("Fallback play failed:", err);
-            });
           }
-        }, 3000);
+        };
         
-        // Cleanup timeout on success
-        const cleanup = () => clearTimeout(fallbackTimeout);
-        video.addEventListener('canplay', cleanup, { once: true });
+        // Try immediately
+        tryPlay();
         
-        // Now assign the stream
-        video.srcObject = stream;
+        // Also try after a short delay (some browsers need this)
+        setTimeout(() => {
+          if (video.paused) {
+            console.log("Retrying play after delay...");
+            tryPlay();
+          }
+        }, 500);
       }
 
       setIsCameraOpen(true);
