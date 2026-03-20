@@ -132,11 +132,6 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
     []
   );
 
-  // Initial start
-  if (!isCameraOpen && !capturedImage && !error) {
-    startCamera();
-  }
-
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -153,6 +148,34 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
         <h2 className="text-white font-semibold">Fang fotografieren</h2>
         <div className="w-10" />{/* Spacer */}
       </div>
+
+      {/* Initial State - Camera not started yet */}
+      {!isCameraOpen && !capturedImage && !error && (
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <p className="text-white text-lg mb-8 text-center">
+            Wähle eine Option, um ein Foto hinzuzufügen:
+          </p>
+          
+          <div className="flex flex-col gap-4 w-full max-w-xs">
+            <button
+              onClick={startCamera}
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg"
+            >
+              📸 Kamera öffnen
+            </button>
+            
+            <label className="flex items-center justify-center gap-3 px-6 py-4 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors cursor-pointer text-lg">
+              🖼️ Aus Galerie wählen
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -181,7 +204,7 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
       )}
 
       {/* Camera Preview */}
-      {!capturedImage && !error && (
+      {isCameraOpen && !capturedImage && (
         <>
           <div className="flex-1 relative bg-black">
             <video
