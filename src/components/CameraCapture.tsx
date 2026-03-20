@@ -149,7 +149,8 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
 
         const imageData = canvas.toDataURL("image/jpeg", 0.9);
         console.log("Photo captured, size:", imageData.length);
-        setCapturedImage(imageData);
+        // Direkt übergeben und schließen - nicht erst in State speichern
+        onCapture(imageData);
         stopCamera();
       } else {
         console.error("Video not ready or canvas context not available");
