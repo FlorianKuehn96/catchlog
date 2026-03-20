@@ -20,7 +20,7 @@ const optionalNumber = z.union([
 // Catch Schema für POST/PUT
 export const catchSchema = z.object({
   id: z.string().regex(uuidPattern).optional(), // Für PUT
-  spotId: z.string().regex(uuidPattern, 'Ungültige Spot-ID'),
+  spotId: z.string().min(1, 'Gewässer ist erforderlich'), // Erlaubt UUIDs und temporäre IDs
   species: z.string().min(1, 'Fischart ist erforderlich').max(100),
   length: optionalNumber,
   weight: optionalNumber,
