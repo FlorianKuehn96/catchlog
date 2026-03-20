@@ -27,7 +27,7 @@ export const catchSchema = z.object({
   bait: z.string().min(1, 'Köder ist erforderlich').max(100),
   technique: z.string().max(100).optional(),
   notes: z.string().max(2000).optional(),
-  timestamp: z.string().datetime().optional(),
+  timestamp: z.string().optional(), // Erlaubt ISO-Datetime mit oder ohne Z
   catchLat: z.number().min(-90).max(90).optional(),
   catchLng: z.number().min(-180).max(180).optional(),
   imageUrl: z.string().optional().or(z.literal('')), // Erlaubt URLs und Base64 data URLs
