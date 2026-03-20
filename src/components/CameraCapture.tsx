@@ -312,8 +312,11 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
               autoPlay
               playsInline
               muted
-              className={`w-full h-full object-cover ${videoReady ? 'opacity-100' : 'opacity-0'}`}
-              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+              className="w-full h-full object-cover"
+              style={{ 
+                transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                backgroundColor: 'black'
+              }}
             />
 
             {/* Camera Controls */}
