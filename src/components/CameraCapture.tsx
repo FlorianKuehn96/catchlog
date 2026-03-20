@@ -41,21 +41,18 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
 
       streamRef.current = stream;
 
-      // Set stream first
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
       setIsCameraOpen(true);
       
-      // Wait for React to render the video element, then play
+      // Wait for React to render the video element, THEN set stream and play
       setTimeout(() => {
-        console.log("Delayed play attempt...");
+        console.log("Delayed setup attempt...");
         if (videoRef.current) {
           const video = videoRef.current;
           console.log("Video element found:", video);
-          console.log("Video paused:", video.paused);
-          console.log("Video srcObject:", video.srcObject);
+          
+          // NOW set the stream (after element exists in DOM)
+          video.srcObject = stream;
+          console.log("Stream assigned to video");
           
           video.play().then(() => {
             console.log("SUCCESS: Video is playing!");
