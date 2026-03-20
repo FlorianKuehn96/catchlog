@@ -41,39 +41,37 @@ export default function CameraCapture({ onCapture, onCancel }: CameraCaptureProp
 
       streamRef.current = stream;
 
+      // Set stream first
       if (videoRef.current) {
-        const video = videoRef.current;
-        video.srcObject = stream;
-        
-        // Simple approach: just try to play
-        console.log("Attempting to play video...");
-        
-        const tryPlay = async () => {
-          try {
-            await video.play();
-            console.log("Video playing!");
-            setVideoReady(true);
-            setLoading(false);
-          } catch (err: any) {
-            console.error("Play failed:", err);
-            setError("Fehler beim Starten: " + err.message);
-            setLoading(false);
-          }
-        };
-        
-        // Try immediately
-        tryPlay();
-        
-        // Also try after a short delay (some browsers need this)
-        setTimeout(() => {
-          if (video.paused) {
-            console.log("Retrying play after delay...");
-            tryPlay();
-          }
-        }, 500);
+        videoRef.current.srcObject = stream;
       }
 
       setIsCameraOpen(true);
+      
+      // Wait for React to render the video element, then play
+      setTimeout(() => {
+        console.log("Delayed play attempt...");
+        if (videoRef.current) {
+          const video = videoRef.current;
+          console.log("Video element found:", video);
+          console.log("Video paused:", video.paused);
+          console.log("Video srcObject:", video.srcObject);
+          
+          video.play().then(() => {
+            console.log("SUCCESS: Video is playing!");
+            setVideoReady(true);
+            setLoading(false);
+          }).catch((err) => {
+            console.error("Play failed:", err.name, err.message);
+            setError("Fehler: " + err.message);
+            setLoading(false);
+          });
+        } else {
+          console.error("Video ref is null after timeout!");
+          setError("Video-Element nicht gefunden");
+          setLoading(false);
+        }
+      }, 100);
     } catch (err: any) {
       console.error("Camera error:", err);
       setError(
