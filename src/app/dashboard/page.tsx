@@ -9,11 +9,23 @@ import { CatchMap } from '@/components/CatchMap';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
 import { CatchCharts } from '@/components/CatchCharts';
 import { Spot, Catch } from '@/types';
+import { useOfflineCatches, useOfflineSpots, useSync, useNetworkStatus } from '@/lib/offline';
+
+// Extended catch type with spot data
+interface CatchWithSpot extends Catch {
+  spot?: Spot;
+}
 
 export default function Dashboard() {
   const { data: session } = useSession();
+  const { isOnline } = useNetworkStatus();
+  const { catches: offlineCatches, loading: catchesLoading, error: catchesError, refresh: refreshCatches, createCatch, deleteCatch } = useOfflineCatches();
+  const { spots: offlineSpots, loading: spotsLoading, error: spotsError, refresh: refreshSpots, createSpot, deleteSpot } = useOfflineSpots();
+  const { sync, isSyncing, pendingCount } = useSync();
+  
+  // Local state
   const [spots, setSpots] = useState<Spot[]>([]);
-  const [catches, setCatches] = useState<Catch[]>([]);
+  const [catches, setCatches] = useState<CatchWithSpot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'catches' | 'spots' | 'map' | 'recommend' | 'stats'>('catches');
@@ -35,6 +47,7 @@ export default function Dashboard() {
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [useOfflineFallback, setUseOfflineFallback] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -47,37 +60,53 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Load data - try offline hooks first, fallback to original method
   const loadData = async () => {
     try {
-      const [spotsRes, catchesRes] = await Promise.all([
-        fetch('/api/spots'),
-        fetch('/api/catches'),
-      ]);
+      // Try to use offline hooks
+      const localSpots = offlineSpots;
+      const localCatches = offlineCatches;
+      
+      // Enrich catches with spot data
+      const catchesWithSpots: CatchWithSpot[] = localCatches.map(c => ({
+        ...c,
+        spot: localSpots.find(s => s.id === c.spotId),
+        // Ensure required weather property exists
+        weather: c.weather || {
+          temp: 15,
+          pressure: 1013,
+          windSpeed: 10,
+          windDirection: 180,
+          conditions: 'Unbekannt',
+        },
+      }));
 
-      if (!spotsRes.ok || !catchesRes.ok) {
-        if (spotsRes.status === 401 || catchesRes.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        // Try to get error details
-        let errorMsg = `Server-Fehler: spots=${spotsRes.status}, catches=${catchesRes.status}`;
+      setSpots(localSpots);
+      setCatches(catchesWithSpots);
+      
+      // If offline hooks are empty and we're online, try server
+      if (isOnline && localCatches.length === 0 && localSpots.length === 0) {
+        // Fallback to server fetch
         try {
-          const spotsText = await spotsRes.text();
-          const catchesText = await catchesRes.text();
-          console.error('Spots error:', spotsText);
-          console.error('Catches error:', catchesText);
-          errorMsg = `Fehler beim Laden: ${spotsText.slice(0, 100)} / ${catchesText.slice(0, 100)}`;
-        } catch (e) {
-          console.error('Could not read error response:', e);
+          const [spotsRes, catchesRes] = await Promise.all([
+            fetch('/api/spots'),
+            fetch('/api/catches'),
+          ]);
+
+          if (spotsRes.ok && catchesRes.ok) {
+            const spotsData = await spotsRes.json();
+            const catchesData = await catchesRes.json();
+            
+            setSpots(spotsData.spots || []);
+            setCatches((catchesData.catches || []).map((c: Catch) => ({
+              ...c,
+              spot: spotsData.spots?.find((s: Spot) => s.id === c.spotId),
+            })));
+          }
+        } catch (err) {
+          console.log('Server fetch failed, using offline data');
         }
-        throw new Error(errorMsg);
       }
-
-      const spotsData = await spotsRes.json();
-      const catchesData = await catchesRes.json();
-
-      setSpots(spotsData.spots || []);
-      setCatches(catchesData.catches || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -87,7 +116,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [offlineCatches, offlineSpots, isOnline]);
 
   const handleAddSpot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,24 +125,18 @@ export default function Dashboard() {
     // Wenn Koordinaten manuell gesetzt wurden, verwende diese
     if (newSpotLat !== '' && newSpotLng !== '') {
       try {
-        const res = await fetch('/api/spots', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: newSpotName,
-            lat: Number(newSpotLat),
-            lng: Number(newSpotLng),
-            type: newSpotType,
-          }),
+        await createSpot({
+          name: newSpotName,
+          lat: Number(newSpotLat),
+          lng: Number(newSpotLng),
+          type: newSpotType,
         });
-
-        if (!res.ok) throw new Error('Fehler beim Speichern');
 
         setNewSpotName('');
         setNewSpotLat('');
         setNewSpotLng('');
         setShowAddSpot(false);
-        loadData();
+        await refreshSpots();
       } catch (err: any) {
         setError(err.message);
       }
@@ -124,24 +147,18 @@ export default function Dashboard() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const res = await fetch('/api/spots', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: newSpotName,
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              type: newSpotType,
-            }),
+          await createSpot({
+            name: newSpotName,
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            type: newSpotType,
           });
-
-          if (!res.ok) throw new Error('Fehler beim Speichern');
 
           setNewSpotName('');
           setNewSpotLat('');
           setNewSpotLng('');
           setShowAddSpot(false);
-          loadData();
+          await refreshSpots();
         } catch (err: any) {
           setError(err.message);
         }
@@ -156,9 +173,8 @@ export default function Dashboard() {
     if (!confirm('Fang wirklich löschen?')) return;
     
     try {
-      const res = await fetch(`/api/catches?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Fehler beim Löschen');
-      loadData();
+      await deleteCatch(id);
+      await refreshCatches();
     } catch (err: any) {
       setError(err.message);
     }
@@ -168,10 +184,8 @@ export default function Dashboard() {
     if (!confirm('Gewässer wirklich löschen?')) return;
     
     try {
-      const res = await fetch(`/api/spots?id=${id}`, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
-      if (!res.ok) throw new Error(data.error || `Fehler: ${res.status}`);
-      loadData();
+      await deleteSpot(id);
+      await refreshSpots();
     } catch (err: any) {
       setError(err.message);
     }
@@ -184,7 +198,7 @@ export default function Dashboard() {
 
   const handleEditSuccess = () => {
     setEditingCatch(undefined);
-    loadData();
+    refreshCatches();
   };
 
   // Filter logic
@@ -196,8 +210,8 @@ export default function Dashboard() {
     if (filterSpot && c.spotId !== filterSpot) return false;
     
     // Date range filter
-    if (filterDateFrom && c.date < filterDateFrom) return false;
-    if (filterDateTo && c.date > filterDateTo) return false;
+    if (filterDateFrom && c.date && c.date < filterDateFrom) return false;
+    if (filterDateTo && c.date && c.date > filterDateTo) return false;
     
     // Search query (species, spot name, bait, technique)
     if (searchQuery) {
@@ -221,7 +235,7 @@ export default function Dashboard() {
   const uniqueSpecies = Array.from(new Set(catches.map(c => c.species))).sort();
 
   // Format sun position for display
-  const formatSunPosition = (sunPos: Catch['sunPosition']) => {
+  const formatSunPosition = (sunPos?: Catch['sunPosition']) => {
     if (!sunPos) return null;
     
     const { hoursFromSunrise, hoursFromSunset, phase } = sunPos;
@@ -241,7 +255,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading || catchesLoading || spotsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Laden...</div>
@@ -254,133 +268,152 @@ export default function Dashboard() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">🎣 CatchLog</h1>
-          <div className="flex items-center gap-2" ref={menuRef}>
-            {/* Dropdown Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <span className="text-2xl">👤</span>
-                <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                  {session?.user?.name || 'Menu'}
-                </span>
-                <svg 
-                  className={`w-4 h-4 text-gray-500 transition-transform ${menuOpen ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          
+          {/* Offline status indicator in header */}
+          <div className="flex items-center gap-4">
+            {!isOnline && (
+              <span className="text-sm text-amber-600 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
+                Offline
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <button
+                onClick={sync}
+                disabled={isSyncing}
+                className="text-sm text-blue-600 flex items-center gap-1 hover:text-blue-700 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {pendingCount} ausstehend
               </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  {/* Profile - highlighted */}
-                  <Link
-                    href="/profile"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100"
+            )}
+            <div className="flex items-center gap-2" ref={menuRef}>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <span className="text-2xl">👤</span>
+                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                    {session?.user?.name || 'Menu'}
+                  </span>
+                  <svg 
+                    className={`w-4 h-4 text-gray-500 transition-transform ${menuOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
                   >
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">
-                      {session?.user?.image ? (
-                        <img 
-                          src={session.user.image} 
-                          alt="" 
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        '👤'
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {session?.user?.name || 'Profil'}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {session?.user?.email || ''}
-                      </p>
-                    </div>
-                  </Link>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-                  {/* Legal */}
-                  <Link
-                    href="/privacy"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span>🛡️</span>
-                    <span>Datenschutz</span>
-                  </Link>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      href="/profile"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">
+                        {session?.user?.image ? (
+                          <img 
+                            src={session.user.image} 
+                            alt="" 
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          '👤'
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {session?.user?.name || 'Profil'}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {session?.user?.email || ''}
+                        </p>
+                      </div>
+                    </Link>
 
-                  <Link
-                    href="/impressum"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span>📋</span>
-                    <span>Impressum</span>
-                  </Link>
+                    <Link
+                      href="/privacy"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>🛡️</span>
+                      <span>Datenschutz</span>
+                    </Link>
 
-                  <Link
-                    href="/cookies"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span>🍪</span>
-                    <span>Cookies</span>
-                  </Link>
+                    <Link
+                      href="/impressum"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>📋</span>
+                      <span>Impressum</span>
+                    </Link>
 
-                  {/* FAQ - placeholder */}
-                  <Link
-                    href="/faq"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span>❓</span>
-                    <span>FAQ</span>
-                  </Link>
+                    <Link
+                      href="/cookies"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>🍪</span>
+                      <span>Cookies</span>
+                    </Link>
 
-                  <Link
-                    href="/personal-bests"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span>🏆</span>
-                    <span>Meine Rekorde</span>
-                  </Link>
+                    <Link
+                      href="/faq"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>❓</span>
+                      <span>FAQ</span>
+                    </Link>
 
-                  <Link
-                    href="/gallery"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
-                  >
-                    <span>📸</span>
-                    <span>Fang-Galerie</span>
-                  </Link>
+                    <Link
+                      href="/personal-bests"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>🏆</span>
+                      <span>Meine Rekorde</span>
+                    </Link>
 
-                  {/* Logout */}
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      window.location.href = '/';
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <span>🚪</span>
-                    <span>Ausloggen</span>
-                  </button>
-                </div>
-              )}
+                    <Link
+                      href="/gallery"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    >
+                      <span>📸</span>
+                      <span>Fang-Galerie</span>
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        window.location.href = '/';
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <span>🚪</span>
+                      <span>Ausloggen</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>
+        {(error || catchesError || spotsError) && (
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{error || catchesError || spotsError}</div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -404,8 +437,8 @@ export default function Dashboard() {
                 key={formKey}
                 spots={spots} 
                 catches={catches} 
-                onSuccess={() => {
-                  loadData();
+                onSuccess={async () => {
+                  await refreshCatches();
                   setFormKey(prev => prev + 1);
                 }} 
               />
@@ -473,7 +506,6 @@ export default function Dashboard() {
                   {/* Filter Panel */}
                   {showFilters && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-                      {/* Species Filter */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Fischart</label>
                         <select
@@ -488,7 +520,6 @@ export default function Dashboard() {
                         </select>
                       </div>
                       
-                      {/* Spot Filter */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Gewässer</label>
                         <select
@@ -503,7 +534,6 @@ export default function Dashboard() {
                         </select>
                       </div>
                       
-                      {/* Date From */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Von Datum</label>
                         <input
@@ -514,7 +544,6 @@ export default function Dashboard() {
                         />
                       </div>
                       
-                      {/* Date To */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Bis Datum</label>
                         <input
@@ -644,7 +673,6 @@ export default function Dashboard() {
                         <option value="sea">Meer</option>
                       </select>
                       
-                      {/* Koordinaten-Anzeige */}
                       {(newSpotLat !== '' || newSpotLng !== '') && (
                         <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
                           📍 {newSpotLat !== '' ? Number(newSpotLat).toFixed(5) : '?'}, {newSpotLng !== '' ? Number(newSpotLng).toFixed(5) : '?'}

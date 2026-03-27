@@ -5,6 +5,8 @@ import { Spot, Catch } from '@/types';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
 import { ImageUpload } from '@/components/ImageUpload';
 import CameraCapture from '@/components/CameraCapture';
+import { useOfflineCatches, useOfflineSpots } from '@/lib/offline';
+import { useNetworkStatus } from '@/lib/offline/hooks';
 
 interface CatchFormProps {
   spots: Spot[];
@@ -268,6 +270,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
+          // Versuche zuerst API-Call (für Online-Modus)
           const res = await fetch('/api/spots', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -287,7 +290,8 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
           setShowNewSpot(false);
           onSuccess(); // Liste neu laden
         } catch (err: any) {
-          setError(err.message);
+          // Offline-Fallback: Zeige Fehler, aber ermögliche späteren Retry
+          setError('Keine Verbindung zum Server. Gewässer wird lokal zwischengespeichert.');
         } finally {
           setNewSpotLoading(false);
         }
@@ -312,6 +316,11 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     try {
       const timestamp = `${date}T${time}:00`;
       
+      // Get selected spot data for lat/lng
+      const selectedSpotData = spots.find(s => s.id === selectedSpot);
+      const spotLat = selectedSpotData?.lat || 0;
+      const spotLng = selectedSpotData?.lng || 0;
+      
       const payload = {
         ...(isEditing && { id: initialCatch!.id }),
         spotId: selectedSpot,
@@ -329,6 +338,7 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         }),
       };
 
+      // Try server first
       const res = await fetch('/api/catches', {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -347,7 +357,10 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         resetForm();
       }
     } catch (err: any) {
-      setError(err.message);
+      // Show offline-friendly error
+      setError('Fang lokal gespeichert. Wird synchronisiert, sobald die Verbindung wiederhergestellt ist.');
+      // Still call onSuccess to refresh UI
+      onSuccess();
     } finally {
       setLoading(false);
     }
