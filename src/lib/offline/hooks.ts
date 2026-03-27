@@ -27,6 +27,28 @@ import {
   SyncQueueItem,
 } from './db';
 
+// ============ DEDUPLIZIERUNGS-HELPER ============
+
+/**
+ * Dedupliziert Fänge nach timestamp + species + spotId.
+ * Bevorzugt Server-Einträge (synced: true) über lokale (synced: false).
+ */
+function deduplicateCatches(catches: OfflineCatch[]): OfflineCatch[] {
+  const uniqueCatches = new Map<string, OfflineCatch>();
+
+  catches.forEach(c => {
+    const key = `${c.timestamp}-${c.species}-${c.spotId}`;
+    const existing = uniqueCatches.get(key);
+
+    // Bevorzuge Server-Einträge (synced: true) über lokale (synced: false oder undefined)
+    if (!existing || (c.synced && !existing.synced)) {
+      uniqueCatches.set(key, c);
+    }
+  });
+
+  return Array.from(uniqueCatches.values());
+}
+
 // Network status hook
 export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
@@ -63,8 +85,21 @@ export function useOfflineCatches() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
+  const isSyncingRef = useRef(false); // NEU: Blockiert Race Conditions
 
   const userId = session?.user?.email;
+
+  // ============ DEDUPLIZIERTES setCatches ============
+  const setCatchesDeduplicated = useCallback((newCatches: OfflineCatch[] | ((prev: OfflineCatch[]) => OfflineCatch[])) => {
+    if (typeof newCatches === 'function') {
+      setCatches(prev => {
+        const result = newCatches(prev);
+        return deduplicateCatches(result);
+      });
+    } else {
+      setCatches(deduplicateCatches(newCatches));
+    }
+  }, []);
 
   // Load catches from IndexedDB (always) and optionally from server
   const loadCatches = useCallback(async () => {
@@ -74,13 +109,20 @@ export function useOfflineCatches() {
       return;
     }
 
+    // NEU: Blockiere während Sync läuft
+    if (isSyncingRef.current) {
+      console.log('[loadCatches] Blocked: Sync läuft bereits');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       // Always load from local DB first (for instant UI)
       const localCatches = await getLocalCatches(userId);
-      setCatches(localCatches);
+      // DEDUPLIZIERUNG bei jedem Load
+      setCatchesDeduplicated(localCatches);
 
       // If online, also fetch from server and sync
       if (isOnline) {
@@ -95,7 +137,8 @@ export function useOfflineCatches() {
 
             // Reload from local DB to get merged data
             const mergedCatches = await getLocalCatches(userId);
-            setCatches(mergedCatches);
+            // DEDUPLIZIERUNG
+            setCatchesDeduplicated(mergedCatches);
           }
         } catch (err) {
           console.error('Failed to sync catches from server:', err);
@@ -107,7 +150,7 @@ export function useOfflineCatches() {
     } finally {
       setLoading(false);
     }
-  }, [userId, isOnline]);
+  }, [userId, isOnline, setCatchesDeduplicated]);
 
   // Initial load
   useEffect(() => {
@@ -141,6 +184,8 @@ export function useOfflineCatches() {
         type: 'catch',
         data: newCatch,
       });
+      // DEDUPLIZIERTES Update statt loadCatches()
+      setCatchesDeduplicated(prev => [...prev, newCatch]);
     } else {
       // Try to sync immediately
       try {
@@ -170,15 +215,22 @@ export function useOfflineCatches() {
             // Speichere Server-Version, lösche lokale
             await saveCatchLocally({ ...serverCatch, userId, synced: true });
             await deleteLocalCatch(id);
+
+            // NEU: UI direkt updaten statt loadCatches()
+            setCatchesDeduplicated(prev => {
+              const filtered = prev.filter(c => c.id !== id); // Entferne lokalen
+              return [...filtered, { ...serverCatch, userId, synced: true }]; // Füge Server-Version hinzu
+            });
+            return { ...serverCatch, userId, synced: true };
           }
-          await loadCatches();
-          return newCatch;  // WICHTIG: Keine weiteren Schritte
         } else {
           // Add to queue if server rejected
           await addToSyncQueue({
             type: 'catch',
             data: newCatch,
           });
+          // DEDUPLIZIERTES Update
+          setCatchesDeduplicated(prev => [...prev, newCatch]);
         }
       } catch (err) {
         // Add to queue if network failed
@@ -186,19 +238,24 @@ export function useOfflineCatches() {
           type: 'catch',
           data: newCatch,
         });
+        // DEDUPLIZIERTES Update
+        setCatchesDeduplicated(prev => [...prev, newCatch]);
       }
     }
 
-    // Reload catches (nur im Offline-Fall oder bei Fehlern)
-    await loadCatches();
     return newCatch;
-  }, [userId, isOnline, loadCatches]);
+  }, [userId, isOnline, setCatchesDeduplicated]);
 
   // Update catch (works offline)
   const updateCatch = useCallback(async (id: string, updates: Partial<OfflineCatch>) => {
     if (!userId) throw new Error('Not authenticated');
 
     await updateLocalCatch(id, updates);
+
+    // DEDUPLIZIERTES Update statt loadCatches()
+    setCatchesDeduplicated(prev =>
+      prev.map(c => c.id === id ? { ...c, ...updates } : c)
+    );
 
     // Add to sync queue
     if (!isOnline) {
@@ -230,15 +287,16 @@ export function useOfflineCatches() {
         });
       }
     }
-
-    await loadCatches();
-  }, [userId, isOnline, loadCatches]);
+  }, [userId, isOnline, setCatchesDeduplicated]);
 
   // Delete catch (works offline)
   const deleteCatch = useCallback(async (id: string) => {
     if (!userId) throw new Error('Not authenticated');
 
     await deleteLocalCatch(id);
+
+    // DEDUPLIZIERTES Update statt loadCatches()
+    setCatchesDeduplicated(prev => prev.filter(c => c.id !== id));
 
     // Add to sync queue
     if (!isOnline) {
@@ -266,9 +324,7 @@ export function useOfflineCatches() {
         });
       }
     }
-
-    await loadCatches();
-  }, [userId, isOnline, loadCatches]);
+  }, [userId, isOnline, setCatchesDeduplicated]);
 
   return {
     catches,
@@ -278,6 +334,7 @@ export function useOfflineCatches() {
     createCatch,
     updateCatch,
     deleteCatch,
+    isSyncing: isSyncingRef.current, // NEU: Expose für UI
   };
 }
 
