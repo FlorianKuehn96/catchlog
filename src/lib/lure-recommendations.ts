@@ -1108,6 +1108,129 @@ export const LURE_KNOWLEDGE_BASE: Array<{
     },
     priority: 10,
   },
+
+  // === BARBE ===
+  {
+    conditions: { fishType: 'Barbe', season: 'spring' },
+    recommendation: {
+      lureType: 'Wurm',
+      lureSize: 'Mittel',
+      lureColor: 'dunkelrot',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'mittel (2-4m)',
+      extras: ['🌸 Frühjahr: Barbe aktiv', '📏 Größe: 30-50cm (bis 70cm)', '🪱 Würmer sehr beliebt'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Barbe', season: 'summer' },
+    recommendation: {
+      lureType: 'Maden',
+      lureSize: 'Mehrere',
+      lureColor: 'weiß',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'mittel (2-4m)',
+      extras: ['☀️ Sommer: Barbe frisst gut', '🌡️ Warme Tage aktiv', '📍 Flussmündungen'],
+    },
+    priority: 85,
+  },
+  {
+    conditions: { fishType: 'Barbe' },
+    recommendation: {
+      lureType: 'Wurm oder Mais',
+      lureSize: 'Mittel',
+      lureColor: 'natürlich',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'mittel (2-4m)',
+      extras: ['🐟 Barbe = Friedfisch', '📏 Typisch 30-50cm', '🪱 Naturköder: Wurm, Maden, Mais'],
+    },
+    priority: 10,
+  },
+
+  // === ALAND ===
+  {
+    conditions: { fishType: 'Aland', season: 'spring' },
+    recommendation: {
+      lureType: 'Maden',
+      lureSize: 'Klein',
+      lureColor: 'weiß',
+      technique: 'Feine Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'flach bis mittel (1-3m)',
+      extras: ['🌸 Frühjahr: Aland-Schwärme', '📏 Größe: 15-25cm', '🐟 Kleiner Friedfisch'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Aland', season: 'summer' },
+    recommendation: {
+      lureType: 'Mais',
+      lureSize: '1-2 Körner',
+      lureColor: 'gelb',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'flach (1-2m)',
+      extras: ['☀️ Sommer: Aland nah an Oberfläche', '🌾 Ufernähe', '🐟 Schwarmfisch'],
+    },
+    priority: 85,
+  },
+  {
+    conditions: { fishType: 'Aland' },
+    recommendation: {
+      lureType: 'Maden oder Mais',
+      lureSize: 'Klein',
+      lureColor: 'weiß/gelb',
+      technique: 'Feine Montage',
+      retrieveSpeed: 'keine',
+      depth: 'flach (1-2m)',
+      extras: ['🐟 Aland = kleiner Friedfisch', '📏 Typisch 15-25cm', '🪱 Kleine Haken (Gr. 14-16)'],
+    },
+    priority: 10,
+  },
+
+  // === ÄSCHE ===
+  {
+    conditions: { fishType: 'Äsche', season: 'spring' },
+    recommendation: {
+      lureType: 'Maden',
+      lureSize: 'Klein',
+      lureColor: 'weiß',
+      technique: 'Grundmontage oder Spinner',
+      retrieveSpeed: 'keine oder langsam',
+      depth: 'flach bis mittel (1-3m)',
+      extras: ['🌸 Frühjahr: Äsche in Strömung', '📏 Größe: 25-45cm', '🎣 Spinner oder Maden'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Äsche', season: 'autumn' },
+    recommendation: {
+      lureType: 'Spinner',
+      lureSize: 'Größe 1-2',
+      lureColor: 'silber',
+      technique: 'Kontinuierlich führen',
+      retrieveSpeed: 'mittel',
+      depth: 'flach (1-2m)',
+      extras: ['🍂 Herbst: Äsche aktiv', '🎯 Spinner wirksam', '🌊 Strömungskanten'],
+    },
+    priority: 85,
+  },
+  {
+    conditions: { fishType: 'Äsche' },
+    recommendation: {
+      lureType: 'Maden oder Spinner',
+      lureSize: 'Klein',
+      lureColor: 'silber/weiß',
+      technique: 'Grund oder Spinner',
+      retrieveSpeed: 'variabel',
+      depth: 'flach (1-3m)',
+      extras: ['🐟 Äsche = Friedfisch (junior Raubfisch)', '📏 Typisch 25-45cm', '🪱 Maden oder kleine Spinner'],
+    },
+    priority: 10,
+  },
 ];
 
 // Helper to get current season from date

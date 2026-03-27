@@ -12,6 +12,7 @@ const GERMAN_FISH_SPECIES = [
   // Süßwasser
   'Hecht', 'Zander', 'Barsch', 'Karpfen', 'Regenbogenforelle', 'Bachforelle',
   'Wels', 'Schleie', 'Brasse', 'Rotauge', 'Aal', 'Döbel', 'Stör',
+  'Barbe', 'Aland', 'Äsche',  // Neue Fischarten
   // Nordsee
   'Dorsch', 'Seehecht', 'Makrele', 'Hering', 'Hornhecht', 'Schellfisch',
   'Seelachs', 'Leng',
