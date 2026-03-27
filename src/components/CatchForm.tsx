@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Spot, Catch, LureRecommendation } from '@/types';
+import { Spot, Catch } from '@/types';
 import { SpotPickerMap } from '@/components/SpotPickerMap';
 import { ImageUpload } from '@/components/ImageUpload';
 import CameraCapture from '@/components/CameraCapture';
-import LureRecommendationButton from '@/components/LureRecommendationButton';
 
 interface CatchFormProps {
   spots: Spot[];
@@ -689,27 +688,6 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
             <option key={s} value={s} />
           ))}
         </datalist>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Köder-Empfehlung
-        </label>
-        <LureRecommendationButton
-          fishType={species}
-          weather={initialCatch?.weather}
-          waterType={spots.find(s => s.id === selectedSpot)?.type}
-          onRecommendationSelected={(rec) => {
-            setBait(`${rec.lureType}, ${rec.lureSize}, ${rec.lureColor}`);
-            setTechnique(`${rec.technique} (${rec.retrieveSpeed})`);
-          }}
-          disabled={!species}
-        />
-        {species && (
-          <p className="text-xs text-gray-500 mt-1">
-            Personalisierte Empfehlung basierend auf Fischart, Wetter und Jahreszeit
-          </p>
-        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
