@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { fetchWeather, getSunPosition } from '@/lib/weather';
 import { catchSchema } from '@/lib/validation';
 import type { Catch, User, Spot } from '@/types';
@@ -81,6 +82,15 @@ export async function POST(request: NextRequest) {
   }
 
   const user = userData as User;
+
+  // Rate limiting
+  const rateLimit = await checkRateLimit(user.id, 'POST:/api/catches');
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', resetTime: rateLimit.resetTime },
+      { status: 429 }
+    );
+  }
 
   try {
     const body = await request.json();
@@ -200,6 +210,15 @@ export async function PUT(request: NextRequest) {
 
   const user = userData as User;
 
+  // Rate limiting
+  const rateLimit = await checkRateLimit(user.id, 'PUT:/api/catches');
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', resetTime: rateLimit.resetTime },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { id, ...updates } = body;
@@ -314,6 +333,15 @@ export async function DELETE(request: NextRequest) {
   }
 
   const user = userData as User;
+
+  // Rate limiting
+  const rateLimit = await checkRateLimit(user.id, 'DELETE:/api/catches');
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', resetTime: rateLimit.resetTime },
+      { status: 429 }
+    );
+  }
   const { searchParams } = new URL(request.url);
   const catchId = searchParams.get('id');
 

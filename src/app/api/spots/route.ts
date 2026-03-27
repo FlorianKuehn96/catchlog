@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getRedis, keys } from '@/lib/redis';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { Spot, User, Catch } from '@/types';
 
 // GET /api/spots - List all spots for user
@@ -64,6 +65,15 @@ export async function POST(request: NextRequest) {
   }
 
   const user = userData as User;
+
+  // Rate limiting
+  const rateLimit = await checkRateLimit(user.id, 'POST:/api/spots');
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', resetTime: rateLimit.resetTime },
+      { status: 429 }
+    );
+  }
   
   try {
     const body = await request.json();

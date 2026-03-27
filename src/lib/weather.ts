@@ -25,13 +25,13 @@ const weatherCodes: Record<number, string> = {
 };
 
 export async function fetchWeather(lat: number, lng: number, timestamp?: string): Promise<Weather> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=pressure_msl`;
+  let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=pressure_msl`;
   
   if (timestamp) {
     // Historical data
     const date = new Date(timestamp);
     const formattedDate = date.toISOString().split('T')[0];
-    url.replace('forecast', `archive?start_date=${formattedDate}&end_date=${formattedDate}`);
+    url = url.replace('forecast', `archive?start_date=${formattedDate}&end_date=${formattedDate}`);
   }
   
   const response = await axios.get<OpenMeteoResponse>(url);
