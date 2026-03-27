@@ -580,6 +580,456 @@ export const LURE_KNOWLEDGE_BASE: Array<{
     },
     priority: 10,
   },
+
+  // === NORDSEE FISCHARTEN ===
+
+  // === DORSCH (NORDSEE) ===
+  {
+    conditions: { fishType: 'Dorsch', season: 'autumn', weather: 'cloudy' },
+    recommendation: {
+      lureType: 'Pilker',
+      lureSize: '150-250g',
+      lureColor: 'silber/weiß oder rot/weiß',
+      technique: 'Up-and-Down am Grund',
+      retrieveSpeed: 'schnelle Hubbewegungen',
+      depth: 'tief (15-40m)',
+      extras: ['Herbst: Große Dorschschwärme', 'Tide-Wechsel beachten', 'Vom Boot oder Steg'],
+    },
+    priority: 100,
+  },
+  {
+    conditions: { fishType: 'Dorsch', season: 'winter' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '15-20cm',
+      lureColor: 'weiß/pink oder rot/weiß',
+      technique: 'Langsam am Grund',
+      retrieveSpeed: 'sehr langsam mit Pausen',
+      depth: 'tief (20-50m)',
+      extras: ['Winter: Dorsch sucht tiefes Wasser', 'Starke Strömung = schwerer Pilker'],
+    },
+    priority: 95,
+  },
+  {
+    conditions: { fishType: 'Dorsch', season: 'spring' },
+    recommendation: {
+      lureType: 'Pilker',
+      lureSize: '100-150g',
+      lureColor: 'silber/gelb',
+      technique: 'Up-and-Down',
+      retrieveSpeed: 'mittel',
+      depth: 'mittel (10-25m)',
+      extras: ['Frühjahr: Dorsch kommt näher', 'Abendstunden besonders gut'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Dorsch' },
+    recommendation: {
+      lureType: 'Pilker oder Gummifisch',
+      lureSize: '150-200g',
+      lureColor: 'silber/weiß',
+      technique: 'Up-and-Down',
+      retrieveSpeed: 'variabel',
+      depth: 'tief',
+      extras: ['Nordsee-Dorsch liebt Pilker', 'Tide-Wechsel nutzen', 'Starke Schnur (0.30mm+)'],
+    },
+    priority: 10,
+  },
+
+  // === SEEHECHT / KÖHLER ===
+  {
+    conditions: { fishType: 'Seehecht', season: 'summer' },
+    recommendation: {
+      lureType: 'Wobbler',
+      lureSize: '12-18cm',
+      lureColor: 'silber/blau oder weiß',
+      technique: 'Oberfläche bis Mittelwasser',
+      retrieveSpeed: 'schnell mit Stops',
+      depth: 'flach bis mittel (2-15m)',
+      extras: ['Sommer: Seehecht jagt an Oberfläche', 'Aggressive Führung', 'Harte Schnelle'],
+    },
+    priority: 95,
+  },
+  {
+    conditions: { fishType: 'Seehecht', season: 'autumn' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '15-20cm',
+      lureColor: 'silber/weiß',
+      technique: 'Mittlere Wasserschicht',
+      retrieveSpeed: 'schnell',
+      depth: 'mittel (10-20m)',
+      extras: ['Herbst: Große Exemplare', 'Schnelle Retrieve bevorzugen'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Seehecht' },
+    recommendation: {
+      lureType: 'Wobbler oder Gummifisch',
+      lureSize: '15cm',
+      lureColor: 'silber/blau',
+      technique: 'Schnell führen',
+      retrieveSpeed: 'schnell',
+      depth: 'flach bis mittel',
+      extras: ['Seehecht ist Jäger', 'Schnelle Köder bevorzugen', 'Vorsicht: Zähne!'],
+    },
+    priority: 10,
+  },
+
+  // === MAKRELE ===
+  {
+    conditions: { fishType: 'Makrele', season: 'summer', timeOfDay: 'morning' },
+    recommendation: {
+      lureType: 'Blinker',
+      lureSize: 'Größe 2-4',
+      lureColor: 'silber/blau',
+      technique: 'Schnell einholen',
+      retrieveSpeed: 'schnell',
+      depth: 'flach (0-5m)',
+      extras: ['Morgens: Makrelen nah am Ufer', 'Schwarmfisch - viele Fänge möglich', 'Kleine Haken (Gr. 6-10)'],
+    },
+    priority: 95,
+  },
+  {
+    conditions: { fishType: 'Makrele', season: 'summer' },
+    recommendation: {
+      lureType: 'Sabiki-Rig',
+      lureSize: 'Klein',
+      lureColor: 'silber/weiß',
+      technique: 'Mehrfachhakensystem',
+      retrieveSpeed: 'langsam ziehen',
+      depth: 'mittel (5-15m)',
+      extras: ['Sabiki-Rig = mehrere Makrelen auf einmal', 'Perfekt für Köderfisch'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Makrele' },
+    recommendation: {
+      lureType: 'Blinker oder Sabiki',
+      lureSize: 'Klein',
+      lureColor: 'silber',
+      technique: 'Schnell',
+      retrieveSpeed: 'schnell',
+      depth: 'flach',
+      extras: ['Makrele schwimmt im Schwarm', 'Sommer-Hauptsaison', 'Gut als Köderfisch'],
+    },
+    priority: 10,
+  },
+
+  // === HERING ===
+  {
+    conditions: { fishType: 'Hering', season: 'autumn' },
+    recommendation: {
+      lureType: 'Sabiki-Rig',
+      lureSize: 'Sehr klein',
+      lureColor: 'silber/weiß',
+      technique: 'Vorfach mit mehreren Haken',
+      retrieveSpeed: 'sehr langsam',
+      depth: 'flach bis mittel',
+      extras: ['Herbst: Heringszug', 'Früh Morgens beste Zeit', 'Perfekter Köderfisch'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Hering', season: 'winter' },
+    recommendation: {
+      lureType: 'Paternoster',
+      lureSize: 'Klein',
+      lureColor: 'silber',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'tief',
+      extras: ['Winter: Hering tief', 'Sehr empfindlicher Biss'],
+    },
+    priority: 85,
+  },
+  {
+    conditions: { fishType: 'Hering' },
+    recommendation: {
+      lureType: 'Sabiki oder feine Montage',
+      lureSize: 'Klein',
+      lureColor: 'silber',
+      technique: 'Köderfisch-Technik',
+      retrieveSpeed: 'keine',
+      depth: 'variabel',
+      extras: ['Hering schwimmt in riesigen Schwärmen', 'Herbst-Winter Saison', 'Klassischer Köderfisch'],
+    },
+    priority: 10,
+  },
+
+  // === HORNHECHT ===
+  {
+    conditions: { fishType: 'Hornhecht', season: 'spring' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '10-15cm',
+      lureColor: 'grün/silber',
+      technique: 'Schnell am Boden',
+      retrieveSpeed: 'schnell mit kurzen Pausen',
+      depth: 'flach (2-8m)',
+      extras: ['Frühjahr: Hornhecht laicht', 'Sehr aggressiv beißen', 'Vorsicht: Schnabel!'],
+    },
+    priority: 95,
+  },
+  {
+    conditions: { fishType: 'Hornhecht', season: 'summer' },
+    recommendation: {
+      lureType: 'Pilker',
+      lureSize: '80-120g',
+      lureColor: 'silber/rot',
+      technique: 'Up-and-Down',
+      retrieveSpeed: 'schnell',
+      depth: 'mittel (8-20m)',
+      extras: ['Sommer: Tiefer als Seehecht', 'Aggressive Führung nötig'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Hornhecht' },
+    recommendation: {
+      lureType: 'Pilker oder Gummi',
+      lureSize: 'Mittel',
+      lureColor: 'silber',
+      technique: 'Schnell',
+      retrieveSpeed: 'schnell',
+      depth: 'mittel',
+      extras: ['Hornhecht = "Nordsee-Hecht"', 'Sehr räuberisch', 'Frühling-Hauptsaison'],
+    },
+    priority: 10,
+  },
+
+  // === SCHELLFISCH ===
+  {
+    conditions: { fishType: 'Schellfisch' },
+    recommendation: {
+      lureType: 'Paternoster',
+      lureSize: 'Mittel',
+      lureColor: 'weiß/rot',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'tief (20-50m)',
+      extras: ['Schellfisch = reiner Grundfisch', 'Tiefe Gebiete', 'Fester Boden bevorzugt'],
+    },
+    priority: 10,
+  },
+
+  // === SEELACHS (KÖHLER) ===
+  {
+    conditions: { fishType: 'Seelachs', season: 'summer' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '15-20cm',
+      lureColor: 'silber/blau',
+      technique: 'Mittlere Schicht',
+      retrieveSpeed: 'mittel bis schnell',
+      depth: 'mittel (10-25m)',
+      extras: ['Seelachs = "Köhler"', 'Sommer: Aktiv im Freiwasser', 'Gutes Essen'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Seelachs' },
+    recommendation: {
+      lureType: 'Pilker',
+      lureSize: '100-150g',
+      lureColor: 'silber',
+      technique: 'Up-and-Down',
+      retrieveSpeed: 'mittel',
+      depth: 'mittel bis tief',
+      extras: ['Seelachs mag Bewegung', 'Auch vom Ufer möglich'],
+    },
+    priority: 10,
+  },
+
+  // === LENG ===
+  {
+    conditions: { fishType: 'Leng' },
+    recommendation: {
+      lureType: 'Paternoster',
+      lureSize: 'Groß',
+      lureColor: 'weiß/pink',
+      technique: 'Tiefe Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'sehr tief (40-80m)',
+      extras: ['Leng = Tiefseefisch', 'Nur bei Tiefseeangeln', 'Winter-Hauptsaison'],
+    },
+    priority: 10,
+  },
+
+  // === OSTSEE FISCHARTEN (BRACKWASSER) ===
+
+  // === DORSCH (OSTSEE) ===
+  {
+    conditions: { fishType: 'Ostsee-Dorsch', season: 'autumn' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '12-18cm',
+      lureColor: 'silber/weiß',
+      technique: 'Mittlere Schicht',
+      retrieveSpeed: 'mittel mit Pausen',
+      depth: 'mittel (8-20m)',
+      extras: ['Ostsee-Dorsch kleiner als Nordsee', 'Brackwasser verändert Verhalten', 'Wobbler auch effektiv'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Ostsee-Dorsch' },
+    recommendation: {
+      lureType: 'Gummifisch oder Wobbler',
+      lureSize: '12-15cm',
+      lureColor: 'natürlich',
+      technique: 'Mittlere Schicht',
+      retrieveSpeed: 'mittel',
+      depth: 'mittel',
+      extras: ['Ostsee = Brackwasser', 'Dorsch oft flacher als in Nordsee'],
+    },
+    priority: 10,
+  },
+
+  // === OSTSEE-FLOUNDER ===
+  {
+    conditions: { fishType: 'Flunder', season: 'summer' },
+    recommendation: {
+      lureType: 'Wurm',
+      lureSize: 'Klein',
+      lureColor: 'natürlich',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'sehr flach (1-5m)',
+      extras: ['Flunder liegt am Boden', 'Sonnige Tage: Flacher', 'Kleine Haken nötig'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Flunder' },
+    recommendation: {
+      lureType: 'Wurm oder kleiner Fisch',
+      lureSize: 'Klein',
+      lureColor: 'natürlich',
+      technique: 'Grundmontage',
+      retrieveSpeed: 'keine',
+      depth: 'flach',
+      extras: ['Flunder = klassischer Ostsee-Fisch', 'Brackwasser-Fach', 'Sommer am besten'],
+    },
+    priority: 10,
+  },
+
+  // === SPROTTE ===
+  {
+    conditions: { fishType: 'Sprotte' },
+    recommendation: {
+      lureType: 'Sabiki-Rig',
+      lureSize: 'Sehr klein',
+      lureColor: 'silber',
+      technique: 'Mehrfachhaken',
+      retrieveSpeed: 'sehr langsam',
+      depth: 'flach',
+      extras: ['Sprotte = kleiner Hering', 'Schwarmfisch', 'Perfekter Köderfisch'],
+    },
+    priority: 10,
+  },
+
+  // === STINT ===
+  {
+    conditions: { fishType: 'Stint', season: 'winter' },
+    recommendation: {
+      lureType: 'Stint-Doll',
+      lureSize: 'Klein',
+      lureColor: 'silber',
+      technique: 'Spezialmontage',
+      retrieveSpeed: 'keine',
+      depth: 'flach',
+      extras: ['Winter: Stint-Saison', 'Brackwasser-Klassiker', 'Abendstunden'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Stint' },
+    recommendation: {
+      lureType: 'Spezial-Stintköder',
+      lureSize: 'Klein',
+      lureColor: 'silber',
+      technique: 'Feinste Montage',
+      retrieveSpeed: 'keine',
+      depth: 'flach',
+      extras: ['Stint = Ostsee-Spezialität', 'Winter-Hauptsaison', 'Brackwasser'],
+    },
+    priority: 10,
+  },
+
+  // === OSTSEE-LACHS ===
+  {
+    conditions: { fishType: 'Ostsee-Lachs', season: 'autumn' },
+    recommendation: {
+      lureType: 'Spinner',
+      lureSize: 'Größe 4-6',
+      lureColor: 'silber/blau oder kupfer',
+      technique: 'Mittlere Schicht',
+      retrieveSpeed: 'schnell',
+      depth: 'mittel (5-15m)',
+      extras: ['Herbst: Lachs wandert', 'Auch vom Ufer möglich', 'Starke Rute nötig'],
+    },
+    priority: 95,
+  },
+  {
+    conditions: { fishType: 'Ostsee-Lachs' },
+    recommendation: {
+      lureType: 'Wobbler oder Spinner',
+      lureSize: 'Mittel',
+      lureColor: 'silber/kupfer',
+      technique: 'Schnell',
+      retrieveSpeed: 'schnell',
+      depth: 'mittel',
+      extras: ['Ostsee-Lachs wandert', 'Herbst-Hauptsaison', 'Starke Schnur nötig'],
+    },
+    priority: 10,
+  },
+
+  // === OSTSEE-HECHT (Brackwasser) ===
+  {
+    conditions: { fishType: 'Ostsee-Hecht', season: 'spring' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '15-20cm',
+      lureColor: 'weiß/silber',
+      technique: 'Langsam am Grund',
+      retrieveSpeed: 'langsam mit Pausen',
+      depth: 'flach bis mittel (1-5m)',
+      extras: ['Ostsee-Hecht mag Brackwasser', 'Frühling: Laichzeit', 'Große Exemplare möglich'],
+    },
+    priority: 90,
+  },
+  {
+    conditions: { fishType: 'Ostsee-Hecht' },
+    recommendation: {
+      lureType: 'Gummifisch oder Wobbler',
+      lureSize: '15cm',
+      lureColor: 'natürlich',
+      technique: 'Mittel',
+      retrieveSpeed: 'mittel',
+      depth: 'flach',
+      extras: ['Ostsee-Hecht = besondere Rasse', 'Brackwasser bevorzugt', 'Großer Hecht möglich'],
+    },
+    priority: 10,
+  },
+
+  // === OSTSEE-ZANDER (Brackwasser) ===
+  {
+    conditions: { fishType: 'Ostsee-Zander' },
+    recommendation: {
+      lureType: 'Gummifisch',
+      lureSize: '10-15cm',
+      lureColor: 'weiß/silber',
+      technique: 'Am Grund entlang',
+      retrieveSpeed: 'langsam',
+      depth: 'mittel (3-8m)',
+      extras: ['Ostsee-Zander im Brackwasser', 'Salzwasser verändert Farbe', 'Meerforellen-Köder funktionieren'],
+    },
+    priority: 10,
+  },
 ];
 
 // Helper to get current season from date

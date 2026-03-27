@@ -9,8 +9,15 @@ interface RecommendProps {
 }
 
 const GERMAN_FISH_SPECIES = [
+  // Süßwasser
   'Hecht', 'Zander', 'Barsch', 'Karpfen', 'Regenbogenforelle', 'Bachforelle',
-  'Wels', 'Schleie', 'Brasse', 'Rotauge', 'Aal', 'Döbel'
+  'Wels', 'Schleie', 'Brasse', 'Rotauge', 'Aal', 'Döbel', 'Stör',
+  // Nordsee
+  'Dorsch', 'Seehecht', 'Makrele', 'Hering', 'Hornhecht', 'Schellfisch',
+  'Seelachs', 'Leng',
+  // Ostsee (Brackwasser)
+  'Ostsee-Dorsch', 'Ostsee-Hecht', 'Ostsee-Zander', 'Ostsee-Lachs',
+  'Flunder', 'Sprotte', 'Stint',
 ].sort();
 
 export function Recommend({ spots }: RecommendProps) {
