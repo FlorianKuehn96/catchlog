@@ -163,8 +163,16 @@ export function useOfflineCatches() {
         });
 
         if (response.ok) {
-          // Lösche lokalen Eintrag - Server hat jetzt die kanonische Version
-          await deleteLocalCatch(id);
+          const serverData = await response.json();
+          // API gibt { catch: {...} } zurück
+          const serverCatch = serverData.catch;
+          if (serverCatch) {
+            // Speichere Server-Version, lösche lokale
+            await saveCatchLocally({ ...serverCatch, userId, synced: true });
+            await deleteLocalCatch(id);
+          }
+          await loadCatches();
+          return newCatch;  // WICHTIG: Keine weiteren Schritte
         } else {
           // Add to queue if server rejected
           await addToSyncQueue({
@@ -181,7 +189,7 @@ export function useOfflineCatches() {
       }
     }
 
-    // Reload catches
+    // Reload catches (nur im Offline-Fall oder bei Fehlern)
     await loadCatches();
     return newCatch;
   }, [userId, isOnline, loadCatches]);
@@ -516,8 +524,14 @@ export function useSync() {
                 }),
               });
               if (response.ok) {
-                // Lösche lokalen Eintrag - Server hat jetzt die kanonische Version
-                await deleteLocalCatch(catchData.id);
+                const serverData = await response.json();
+                // API gibt { catch: {...} } zurück
+                const serverCatch = serverData.catch;
+                if (serverCatch) {
+                  // Speichere Server-Version, dann lösche lokale
+                  await saveCatchLocally({ ...serverCatch, userId: catchData.userId, synced: true });
+                  await deleteLocalCatch(catchData.id);
+                }
               }
               break;
             }
