@@ -163,7 +163,8 @@ export function useOfflineCatches() {
         });
 
         if (response.ok) {
-          await markCatchSynced(id);
+          // Lösche lokalen Eintrag - Server hat jetzt die kanonische Version
+          await deleteLocalCatch(id);
         } else {
           // Add to queue if server rejected
           await addToSyncQueue({
@@ -515,7 +516,8 @@ export function useSync() {
                 }),
               });
               if (response.ok) {
-                await markCatchSynced(catchData.id);
+                // Lösche lokalen Eintrag - Server hat jetzt die kanonische Version
+                await deleteLocalCatch(catchData.id);
               }
               break;
             }
