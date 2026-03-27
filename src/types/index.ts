@@ -82,6 +82,18 @@ export interface Recommendation {
   reasoning: string;
 }
 
+export interface LureRecommendation {
+  lureType: string;
+  lureSize: string;
+  lureColor: string;
+  technique: string;
+  retrieveSpeed: string;
+  depth: string;
+  extras?: string[];
+  confidence: number;
+  reasoning: string;
+}
+
 export interface Stats {
   totalCatches: number;
   totalSpots: number;
