@@ -88,6 +88,10 @@ const GERMAN_FISH_SPECIES = [
 export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }: CatchFormProps) {
   const isEditing = !!initialCatch;
   
+  // Offline hooks
+  const { isOnline } = useNetworkStatus();
+  const { createCatch } = useOfflineCatches();
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(initialCatch?.spotId || '');
@@ -316,13 +320,54 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
     try {
       const timestamp = `${date}T${time}:00`;
       
-      // Get selected spot data for lat/lng
-      const selectedSpotData = spots.find(s => s.id === selectedSpot);
-      const spotLat = selectedSpotData?.lat || 0;
-      const spotLng = selectedSpotData?.lng || 0;
-      
-      const payload = {
-        ...(isEditing && { id: initialCatch!.id }),
+      // Try server first if online
+      if (isOnline) {
+        const payload = {
+          ...(isEditing && { id: initialCatch!.id }),
+          spotId: selectedSpot,
+          species,
+          length: length ? parseFloat(length) : undefined,
+          weight: weight ? parseFloat(weight) : undefined,
+          bait,
+          technique,
+          notes,
+          imageUrl,
+          timestamp,
+          ...(useCatchCoordinates && catchLat && catchLng && {
+            catchLat,
+            catchLng,
+          }),
+        };
+
+        try {
+          const res = await fetch('/api/catches', {
+            method: isEditing ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            onSuccess();
+            if (!isEditing) {
+              resetForm();
+            }
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // Continue to offline fallback
+        }
+      }
+
+      // Offline fallback: save to IndexedDB
+      // Hole Spot-Daten für lat/lng
+      const spotData = spots.find(s => s.id === selectedSpot);
+      // Extrahiere date/time aus timestamp
+      const dateObj = new Date(timestamp);
+      const dateStr = dateObj.toISOString().split('T')[0];
+      const timeStr = dateObj.toTimeString().slice(0, 5);
+
+      await createCatch({
         spotId: selectedSpot,
         species,
         length: length ? parseFloat(length) : undefined,
@@ -330,37 +375,26 @@ export function CatchForm({ spots, catches, initialCatch, onSuccess, onCancel }:
         bait,
         technique,
         notes,
-        imageUrl,
+        photoUrl: imageUrl,
         timestamp,
-        ...(useCatchCoordinates && catchLat && catchLng && {
+        date: dateStr,      // REQUIRED
+        time: timeStr,      // REQUIRED
+        lat: spotData?.lat || 0,   // REQUIRED
+        lng: spotData?.lng || 0,   // REQUIRED
+        ...(useCatchCoordinates && catchLat !== null && catchLng !== null && {
           catchLat,
           catchLng,
         }),
-      };
-
-      // Try server first
-      const res = await fetch('/api/catches', {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Fehler beim Speichern');
-      }
-
+      setError('✅ Fang lokal gespeichert. Wird synchronisiert, sobald die Verbindung wiederhergestellt ist.');
       onSuccess();
       
-      // Formular zurücksetzen (nur bei neuem Fang, nicht beim Bearbeiten)
       if (!isEditing) {
         resetForm();
       }
     } catch (err: any) {
-      // Show offline-friendly error
-      setError('Fang lokal gespeichert. Wird synchronisiert, sobald die Verbindung wiederhergestellt ist.');
-      // Still call onSuccess to refresh UI
-      onSuccess();
+      setError('Fehler beim Speichern: ' + (err.message || 'Unbekannter Fehler'));
     } finally {
       setLoading(false);
     }
